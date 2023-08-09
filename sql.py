@@ -68,7 +68,7 @@ def print_tables():
         
 # print 10 rows from a given table_name
 def query_table(table_name):
-    SQL = f"SELECT * FROM {table_name} LIMIT 10;"
+    SQL = f"SELECT COUNT(*) FROM {table_name};"
     conn, cursor = connect()
     cursor.execute(SQL)
     rows = cursor.fetchall()
