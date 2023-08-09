@@ -70,10 +70,6 @@ def get_points_over_time(matches_df, league_entry_df):
     
     plt.figure(figsize=[15,6])
 
-
-    # for col in liam_df['points']:
-    #     plt.plot(liam_df['points'][col], label=col)
-
     plt.plot(output_df['points']['Benji'], label='Benji', marker='o')
     plt.plot(output_df['points']['Cory'], label='Cory', marker='o')
     plt.plot(output_df['points']['Dave'], label='Dave', marker='o')
@@ -109,32 +105,49 @@ def get_matches_stacked(matches_df, league_entry_df):
     # Limit to finished games only
     matches_df = matches_df[matches_df['finished'] == True]
 
-    # Join to get team names and player names of entry 1 (home team)
-    matches_df = pd.merge(matches_df,
-                          league_entry_df[['id', 'player_first_name']],
-                          how='left',
-                          left_on='league_entry_1',
-                          right_on='id')
+    if not matches_df.empty:
 
-    # Join to get team names and player names of entry 2 (away team)
-    matches_df = pd.merge(matches_df,
-                          league_entry_df[['id', 'player_first_name']],
-                          how='left',
-                          left_on='league_entry_2',
-                          right_on='id')
+        # Join to get team names and player names of entry 1 (home team)
+        matches_df = pd.merge(matches_df,
+                            league_entry_df[['id', 'player_first_name']],
+                            how='left',
+                            left_on='league_entry_1',
+                            right_on='id')
 
-    # Drop unused columns, rename for clearer columns
-    matches_df = (matches_df
-                 .drop(['finished', 'started', 'id_x', 'id_y', 'league_entry_1', 'league_entry_2'], axis=1)
-                .rename(columns={'event':'match',
-                           'player_first_name_x': 'home_player',
-                           'league_entry_1_points': 'home_score',
-                           'player_first_name_y': 'away_player',
-                           'league_entry_2_points': 'away_score',
-                          })
-                )
-    
-    def calc_points(df):
+        # Join to get team names and player names of entry 2 (away team)
+        matches_df = pd.merge(matches_df,
+                            league_entry_df[['id', 'player_first_name']],
+                            how='left',
+                            left_on='league_entry_2',
+                            right_on='id')
+
+        # Drop unused columns, rename for clearer columns
+        matches_df = (matches_df
+                    .drop(['finished', 'started', 'id_x', 'id_y', 'league_entry_1', 'league_entry_2'], axis=1)
+                    .rename(columns={'event':'match',
+                            'player_first_name_x': 'home_player',
+                            'league_entry_1_points': 'home_score',
+                            'player_first_name_y': 'away_player',
+                            'league_entry_2_points': 'away_score',
+                            })
+                    )
+        
+
+        matches_df = matches_df.apply(calc_points, axis=1)
+        matches_df
+        
+        home_df = matches_df[['match', 'home_player', 'home_score', 'home_points', 'home_margin']]
+        home_df = home_df.rename(columns={'home_player':'team', 'home_score':'score', 'home_points':'points', 'home_margin':'margin'})
+
+        away_df = matches_df[['match', 'away_player', 'away_score', 'away_points', 'away_margin']]
+        away_df = away_df.rename(columns={'away_player':'team', 'away_score':'score', 'away_points':'points', 'away_margin':'margin'})
+
+        matches_df_stacked = home_df.append(away_df)
+        matches_df_stacked = matches_df_stacked.sort_values(by='match').reset_index().drop(['index'], axis=1)
+        
+        return matches_df_stacked
+
+def calc_points(df):
         if df['home_score'] == df['away_score']:
             df['home_points'] = 1
             df['away_points'] = 1
@@ -149,20 +162,6 @@ def get_matches_stacked(matches_df, league_entry_df):
         df['away_margin'] = df['away_score'] - df['home_score']
         
         return df
-
-    matches_df = matches_df.apply(calc_points, axis=1)
-    
-    home_df = matches_df[['match', 'home_player', 'home_score', 'home_points', 'home_margin']]
-    home_df = home_df.rename(columns={'home_player':'team', 'home_score':'score', 'home_points':'points', 'home_margin':'margin'})
-
-    away_df = matches_df[['match', 'away_player', 'away_score', 'away_points', 'away_margin']]
-    away_df = away_df.rename(columns={'away_player':'team', 'away_score':'score', 'away_points':'points', 'away_margin':'margin'})
-
-    matches_df_stacked = home_df.append(away_df)
-    matches_df_stacked = matches_df_stacked.sort_values(by='match').reset_index().drop(['index'], axis=1)
-    
-    return matches_df_stacked
-
 
 def chart_margins_single(df, player):
     

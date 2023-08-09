@@ -11,7 +11,7 @@ config.read('config.ini')
 PREM_URL = "https://draft.premierleague.com/"
 
 # Specify the path to the parent directory
-parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Get the path of the script's directory
+parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 folder_path = 'data'
 

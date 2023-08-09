@@ -132,3 +132,4 @@ dmypy.json
 
 # config file
 **/config.py
+**/config.ini
