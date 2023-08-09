@@ -2,7 +2,6 @@ import getpass
 import requests
 import json
 import pandas as pd
-from pandas.io.json import json_normalize
 import matplotlib.pyplot as plt
 import datetime
 import numpy as np
@@ -10,9 +9,8 @@ import numpy as np
 
 
 def get_points_over_time(matches_df, league_entry_df):
-    # Filter to played matches
-    utils
     
+    # Filter to played matches    
     matches_df = matches_df[matches_df['finished'] == True]
 
     # Join to get team names and player names of entry 1 (home team)
@@ -30,15 +28,15 @@ def get_points_over_time(matches_df, league_entry_df):
                           right_on='id')
 
     # Drop unused columns, rename for clearer columns
-    matches_df = (matches_df
-                 .drop(['finished', 'started', 'id_x', 'id_y', 'league_entry_1', 'league_entry_2'], axis=1)
-                .rename(columns={'event':'match',
+    matches_df = matches_df\
+            .drop(['finished', 'started', 'id_x', 'id_y', 'league_entry_1', 'league_entry_2'], axis=1)\
+            .rename(columns={'event':'match',
                            'player_first_name_x': 'home_player',
                            'league_entry_1_points': 'home_score',
                            'player_first_name_y': 'away_player',
                            'league_entry_2_points': 'away_score',
-                          })
-                )
+                })
+                
     
     def calc_points(df):
         if df['home_score'] == df['away_score']:
@@ -53,6 +51,7 @@ def get_points_over_time(matches_df, league_entry_df):
         return df
 
     matches_df = matches_df.apply(calc_points, axis=1)
+    print(f"matches_df columns: {matches_df.columns}")
     
     home_df = matches_df[['match', 'home_player', 'home_score', 'home_points']]
     home_df = home_df.rename(columns={'home_player':'team', 'home_score':'score', 'home_points':'points'})

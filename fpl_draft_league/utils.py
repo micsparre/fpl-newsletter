@@ -1,12 +1,21 @@
-import getpass
 import requests
 import json
-from pandas.io.json import json_normalize
 import pandas as pd
-import re
+from pandas import json_normalize
+import os
+from configparser import ConfigParser
 
+config = ConfigParser()
+config.read('config.ini')
 
-def get_json(email_address):
+PREM_URL = "https://draft.premierleague.com/"
+
+# Specify the path to the parent directory
+parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Get the path of the script's directory
+
+folder_path = 'data'
+
+def get_json():
     """
     Pulls fpl draft league data using an api call, and stores the output
     in a json file at the specified location.
@@ -15,37 +24,33 @@ def get_json(email_address):
     
     :param file_path: The file path and name of the json file you wish to create
     :param api: The api call for your fpl draft league
-    :param email_address: Your email address to authenticate with premierleague.com
     :returns: 
     """
-    json_files = ['../data/transactions.json',
-         '../data/elements.json',
-         '../data/details.json',
-         '../data/element_status.json'
-                 ]
+
     
-    apis = ['https://draft.premierleague.com/api/draft/league/38996/transactions',
-       'https://draft.premierleague.com/api/bootstrap-static',
-       'https://draft.premierleague.com/api/league/38996/details',
-       'https://draft.premierleague.com/api/league/38996/element-status']
+    apis = ['api/draft/entry/301781/transactions',
+       'api/bootstrap-static',
+       'api/bootstrap-dynamic',
+       'api/league/73698/details',
+       'api/league/73698/element-status']
     
     # Post credentials for authentication
-    pwd = getpass.getpass('Enter Password: ')
     session = requests.session()
     url = 'https://users.premierleague.com/accounts/login/'
     payload = {
-     'password': pwd,
-     'login': email_address,
+     'password': config.get('api', 'password'),
+     'login': config.get('api', 'username'),
      'redirect_uri': 'https://fantasy.premierleague.com/a/login',
      'app': 'plfpl-web'
     }
     session.post(url, data=payload)
     
     # Loop over the api(s), call them and capture the response(s)
-    for file, i in zip(json_files, apis):
-        r = session.get(i)
+    for url in apis:
+        r = session.get(PREM_URL + url)
         jsonResponse = r.json()
-        with open(file, 'w') as outfile:
+        file_path = os.path.join(parent_directory, folder_path, os.path.basename(url))
+        with open(f"{file_path}.json", 'w') as outfile:
             json.dump(jsonResponse, outfile)
             
 
@@ -53,21 +58,21 @@ def get_data(df_name):
     
     # Dataframes from the details.json
     if df_name == 'league_entries':
-        with open('../data/details.json') as json_data:
+        with open(os.path.join(parent_directory, folder_path, 'details.json')) as json_data:
             d = json.load(json_data)
             league_entry_df = json_normalize(d['league_entries'])
             
         return league_entry_df
     
     elif df_name == 'matches':
-        with open('../data/details.json') as json_data:
+        with open(os.path.join(parent_directory, folder_path, 'details.json')) as json_data:
             d = json.load(json_data)
             matches_df = json_normalize(d['matches'])
             
         return matches_df
     
     elif df_name == 'standings':
-        with open('../data/details.json') as json_data:
+        with open(os.path.join(parent_directory, folder_path, 'details.json')) as json_data:
             d = json.load(json_data)
             standings_df = json_normalize(d['standings'])
             
@@ -75,14 +80,14 @@ def get_data(df_name):
     
     # Dataframes from the elements.json
     elif df_name == 'elements':
-        with open('../data/elements.json') as json_data:
+        with open(os.path.join(parent_directory, folder_path, 'elements.json')) as json_data:
             d = json.load(json_data)
             elements_df = json_normalize(d['elements'])
             
         return elements_df
     
     elif df_name == 'element_types':
-        with open('../data/elements.json') as json_data:
+        with open(os.path.join(parent_directory, folder_path, 'elements.json')) as json_data:
             d = json.load(json_data)
             element_types_df = json_normalize(d['element_types'])
             
@@ -90,7 +95,7 @@ def get_data(df_name):
     
     # Dataframes from the transactions.json
     elif df_name == 'transactions':
-        with open('../data/transactions.json') as json_data:
+        with open(os.path.join(parent_directory, folder_path, 'transactions.json')) as json_data:
             d = json.load(json_data)
             transactions_df = json_normalize(d['transactions'])
             
@@ -98,14 +103,14 @@ def get_data(df_name):
     
     # Dataframes from the element_status.json
     elif df_name == 'element_status':
-        with open('../data/element_status.json') as json_data:
+        with open(os.path.join(parent_directory, folder_path, 'element_status.json')) as json_data:
             d = json.load(json_data)
             element_status_df = json_normalize(d['element_status'])
             
         return element_status_df
     
     
-def get_player_data(email_address, elements):
+def get_player_data(elements):
     """
     Function to pull element gameweek data for a specified list of
     elements.
@@ -115,33 +120,29 @@ def get_player_data(email_address, elements):
     
     :return:
     """
-    pwd = getpass.getpass('Enter Password: ')
     
     for element in elements:
         
-        # Create a separate .json file for an element
-        json_files = [f"../data/elements/{str(element)}.json"]
-        
         # Write the api call
-        apis = [f"https://draft.premierleague.com/api/element-summary/{str(element)}"]
+        apis = [f"/api/element-summary/{str(element)}"]
 
         # Post credentials for authentication
-        pwd = pwd
         session = requests.session()
         url = 'https://users.premierleague.com/accounts/login/'
         payload = {
-         'password': pwd,
-         'login': email_address,
+         'password': config.get('api', 'password'),
+         'login': config.get('api', 'username'),
          'redirect_uri': 'https://fantasy.premierleague.com/a/login',
          'app': 'plfpl-web'
         }
         session.post(url, data=payload)
 
         # Loop over the api(s), call them and capture the response(s)
-        for file, i in zip(json_files, apis):
-            r = session.get(i)
+        for url in apis:
+            r = session.get(PREM_URL + url)
             jsonResponse = r.json()
-            with open(file, 'w') as outfile:
+            file_path = os.path.join(parent_directory, folder_path, os.path.basename(url))
+            with open(f"{file_path}.json", 'w') as outfile:
                 json.dump(jsonResponse, outfile)
     
     
