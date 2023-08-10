@@ -41,10 +41,10 @@ def process_players():
 
 # 'elements' object processed and returned as df
 def process_elements():
-    elements_filename = "elements.json"
+    elements_filename = "bootstrap-static.json"
     elements_json = load_json(os.path.join(FOLDER, elements_filename))
     elements_df = pd.json_normalize(elements_json["elements"])
-    elements_columns = ["id", "first_name", "second_name", "team", "element_type", "draft_rank"]
+    elements_columns = ["id", "first_name", "second_name", "team", "element_type", "draft_rank", "status"]
     elements_df = elements_df[elements_columns]
     elements_df.rename(columns={"second_name" : "last_name"}, inplace=True)
     return elements_df
@@ -54,7 +54,7 @@ def process_status():
     filename = "element-status.json"
     element_status_json = load_json(os.path.join(FOLDER, filename))
     status_df = pd.json_normalize(element_status_json["element_status"])
-    status_columns = ["element", "owner", "status"]
+    status_columns = ["element", "owner"]
     status_df = status_df[status_columns]
     return status_df
 
@@ -77,7 +77,7 @@ def process_owners():
 
 # 'teams' object processed and returned as df
 def process_teams():
-    filename = "elements.json"
+    filename = "bootstrap-static.json"
     elements_json = load_json(os.path.join(FOLDER, filename))
     teams_df = pd.json_normalize(elements_json["teams"])
     teams_columns = ["id", "name"]
@@ -87,7 +87,7 @@ def process_teams():
 
 # 'element_types' object processed and returned as df
 def process_positions():
-    filename = "elements.json"
+    filename = "bootstrap-static.json"
     elements_json = load_json(os.path.join(FOLDER, filename))
     positions_df = pd.json_normalize(elements_json["element_types"])
     positions_columns = ["id", "singular_name"]
