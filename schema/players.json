@@ -6,6 +6,8 @@
         "last_name" : "TEXT",
         "team" : "TEXT",
         "position" : "TEXT",
-        "draft_rank" : "INTEGER"
+        "draft_rank" : "INTEGER",
+        "owner" : "TEXT",
+        "status" : "TEXT"
     }
 }

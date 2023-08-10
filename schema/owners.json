@@ -1,0 +1,9 @@
+{
+    "primary_key" : "id",
+    "fields" : {
+        "id" : "INTEGER",
+        "team" : "TEXT",
+        "first_name" : "TEXT",
+        "last_name" : "TEXT"
+    }
+}

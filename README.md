@@ -1,7 +1,6 @@
 # FPL Draft League
 ---
-This is a hobby project to produce fun data and charts related to the [fantasy premier league (FPL) draft game](https://draft.premierleague.com/).
-
+I picked up this hobby project from [leej11](https://github.com/leej11/fpl_draft_league). 
 
 
 ## Repository Structure
@@ -24,5 +23,3 @@ This is for storing example notebooks for illustrating functionality of the pack
 
 https://www.reddit.com/r/FantasyPL/comments/9rclpj/python_for_fantasy_football_using_the_fpl_api/
 http://www.fantasyfutopia.com/python-for-fantasy-football-apis-and-json-data/
-https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.merge.html
-https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.merge.html
