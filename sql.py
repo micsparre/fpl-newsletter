@@ -17,13 +17,9 @@ def close_connection(cursor, conn):
 
 # get cursor and connection objects
 def connect():
-    
     # Connect to an SQLite database (creates a new file if it doesn't exist)
     conn = sqlite3.connect(DB_NAME)
-    
-    # Create a cursor to execute SQL statements
     cursor = conn.cursor()
-    
     return conn, cursor
 
 
@@ -43,17 +39,11 @@ def create_tables():
     folder_path = "schema"
     table_wildcard = "*.json"
     filenames = glob.glob(os.path.join(folder_path, table_wildcard))
-    
     conn, cursor = connect()
-    
     for file in filenames:
         sql = create_sql(file)
         print(f"sql: {sql}")
-        
-        # Create a new table
         cursor.execute(sql)
-
-        # Commit the changes and close the connection
         conn.commit()
         
     close_connection(cursor, conn)
@@ -95,3 +85,14 @@ def get_df_from_table(table_name):
     df = pd.read_sql_query(SQL, conn)
     close_connection(cursor, conn)
     return df
+
+# creates sqlite connection and executes query and returns result
+def execute_query(SQL):
+    conn, cursor = connect()
+    cursor.execute(SQL)
+    rows = cursor.fetchall()
+    conn.commit()
+    close_connection(cursor, conn)
+    for row in rows:
+        print(row)
+    return rows

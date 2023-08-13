@@ -133,3 +133,8 @@ dmypy.json
 # config file
 **/config.py
 **/config.ini
+
+# files to not include
+test.py
+data/
+.DS_Store
