@@ -1,6 +1,8 @@
 import os
 import glob
 import sqlite3
+import pandas as pd
+from api import get_data
 from utils import load_json
 
 DB_NAME = "fpl-draft.db"
@@ -69,6 +71,7 @@ def print_tables():
 # print 10 rows from a given table_name
 def query_table(table_name):
     SQL = f"SELECT * FROM {table_name} LIMIT 10;"
+    # SQL = f"SELECT distinct status FROM {table_name} LIMIT 10;"
     conn, cursor = connect()
     cursor.execute(SQL)
     rows = cursor.fetchall()
@@ -76,6 +79,7 @@ def query_table(table_name):
         print(f"row: {row}")
     close_connection(cursor, conn)
         
+# print count of records from a given table_name
 def count_table(table_name):
     SQL = f"SELECT COUNT(*) FROM {table_name};"
     conn, cursor = connect()
@@ -83,3 +87,11 @@ def count_table(table_name):
     num_rows = cursor.fetchall()
     print(f"num rows in {table_name}: {num_rows}")
     close_connection(cursor, conn)
+
+# return df loaded from sqlite    
+def get_df_from_table(table_name):
+    conn, cursor = connect()
+    SQL = f"SELECT * from {table_name}"
+    df = pd.read_sql_query(SQL, conn)
+    close_connection(cursor, conn)
+    return df

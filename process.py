@@ -1,14 +1,16 @@
 import pandas as pd
 import os
 from utils import load_json
-from sql import connect, close_connection
+from api import get_data
+from sql import connect, close_connection, get_df_from_table
+from sms import send_sms
 
 FOLDER = "data"
 
 # process the api data into the players table
 def process_players():
     DB = "players"
-    elements_df = process_elements()
+    elements_df = process_elements("api")
     status_df = process_status()
     owners_df = process_owners()
     teams_df = process_teams()
@@ -29,6 +31,11 @@ def process_players():
     merged_df.drop(columns=["position_id", "element_type"], inplace=True)
     merged_df.rename(columns={"singular_name" : "position"}, inplace=True)
     
+    db_players_df = process_elements("table")
+    new_players_df = identify_new_players(merged_df, db_players_df)
+    injury_updates_df = identify_injury_updates(merged_df, db_players_df)
+    rc = send_alert(len(new_players_df), len(injury_updates_df))
+    
     # print(f"merged_df columns: {merged_df.columns}")
     # print(f"num rows: {len(merged_df)}")
     excel_filename = 'players.xlsx'
@@ -37,16 +44,21 @@ def process_players():
     conn, cursor = connect()
     merged_df.to_sql(DB, conn, if_exists='replace', index=False)
     close_connection(cursor, conn)
-    return
+    return rc
 
 # 'elements' object processed and returned as df
-def process_elements():
-    elements_filename = "bootstrap-static.json"
-    elements_json = load_json(os.path.join(FOLDER, elements_filename))
-    elements_df = pd.json_normalize(elements_json["elements"])
-    elements_columns = ["id", "first_name", "second_name", "team", "element_type", "draft_rank", "status"]
-    elements_df = elements_df[elements_columns]
-    elements_df.rename(columns={"second_name" : "last_name"}, inplace=True)
+def process_elements(method):
+    if method == "api":
+        elements_df = get_data("elements")
+        elements_columns = ["id", "first_name", "second_name", "team", "element_type", "draft_rank", "status"]
+        value_map = {'a': 'Active', 'u': 'Transferred', 'i': 'Bad Injury', 's': 'Suspended', 'd': 'Injury'}
+        elements_df = elements_df[elements_columns]
+        elements_df.rename(columns={"second_name" : "last_name"}, inplace=True)
+        elements_df['status'].replace(value_map, inplace=True)
+    elif method == "table":
+        elements_df = get_df_from_table("players")
+    else:
+        raise Exception("Invalid method passed")    
     return elements_df
 
 # 'element_status' object processed and returned as df
@@ -95,3 +107,33 @@ def process_positions():
     positions_df.rename(columns={"id" : "position_id"}, inplace=True)
     return positions_df
 
+# compare api get to db df
+def identify_new_players(api_players_df, db_players_df):
+    
+    new_players_df = api_players_df[~api_players_df['id'].isin(db_players_df['id'])].copy()
+    new_players_df.sort_values(by=['draft_rank'], inplace=True)
+    # new_players_df = api_players_df[new_players]
+    # print(new_players_df)
+    return new_players_df
+
+# compare api get to db df
+def identify_injury_updates(api_players_df, db_players_df):
+    
+    merged_df = pd.merge(api_players_df, db_players_df, on='id')
+    # print(f"injury updates cols: {merged_df.columns}")
+    injury_updates_df = merged_df[merged_df['status_x'] != merged_df['status_y']]
+
+    return injury_updates_df
+
+def send_alert(num_new_players, num_injury_updates):
+    rc = None
+    if num_new_players or num_injury_updates:
+        message_body = f"""FPL DRAFT UPDATES\n
+There {"are" if num_new_players != 1 else "is"} {num_new_players or 0} new player{"s" if num_new_players != 1 else ""} this week.
+
+There {"are" if num_new_players != 1 else "is"} {num_injury_updates or 0} player injury update{"s" if num_new_players != 1 else ""} this week.
+"""
+        rc = send_sms(message_body)
+    else:
+        rc = "No updates to send out"
+    return rc
