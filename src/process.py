@@ -1,17 +1,17 @@
 import pandas as pd
 import os
-from utils import load_json
-from api import get_data
-from sql import connect, close_connection, get_df_from_table
-from sms import send_sms
-from send_email import send_email
+from lib.utils import load_json
+from etl_scripts.api import get_data
+from lib.sql import connect, close_connection, get_df_from_table
+from lib.send_sms import send_sms
+from lib.send_email import send_email
 
-FOLDER = "data"
-REPORT_PATH = 'players.xlsx'
+API_RESULTS_FOLDER = os.path.join("data", "api_results")
+REPORT_PATH = os.path.join("data", "generated_reports", "players.xlsx")
+DB = "players"
 
-# process the api data into the players table
+# transform and load the api data into the players table
 def process_players():
-    DB = "players"
     elements_df = process_elements("api")
     status_df = process_status()
     owners_df = process_owners()
@@ -71,7 +71,7 @@ def process_elements(method):
 # 'element_status' object processed and returned as df
 def process_status():
     filename = "element-status.json"
-    element_status_json = load_json(os.path.join(FOLDER, filename))
+    element_status_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
     status_df = pd.json_normalize(element_status_json["element_status"])
     status_columns = ["element", "owner"]
     status_df = status_df[status_columns]
@@ -81,7 +81,7 @@ def process_status():
 def process_owners():
     DB = "owners"
     filename = "details.json"
-    owners_json = load_json(os.path.join(FOLDER, filename))
+    owners_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
     owners_df = pd.json_normalize(owners_json["league_entries"])
     owners_columns = ["entry_id", "entry_name"]
     # owners_columns = ["entry_id", "entry_name", "player_first_name", "player_last_name"]
@@ -97,7 +97,7 @@ def process_owners():
 # 'teams' object processed and returned as df
 def process_teams():
     filename = "bootstrap-static.json"
-    elements_json = load_json(os.path.join(FOLDER, filename))
+    elements_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
     teams_df = pd.json_normalize(elements_json["teams"])
     teams_columns = ["id", "name"]
     teams_df = teams_df[teams_columns]
@@ -107,7 +107,7 @@ def process_teams():
 # 'element_types' object processed and returned as df
 def process_positions():
     filename = "bootstrap-static.json"
-    elements_json = load_json(os.path.join(FOLDER, filename))
+    elements_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
     positions_df = pd.json_normalize(elements_json["element_types"])
     positions_columns = ["id", "singular_name"]
     positions_df = positions_df[positions_columns]

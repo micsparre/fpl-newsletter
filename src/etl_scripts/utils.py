@@ -3,43 +3,28 @@ import json
 import pandas as pd
 from pandas import json_normalize
 import os
-from configparser import ConfigParser
+from lib.utils import load_json
 
-config = ConfigParser()
-config.read('config.ini')
+CONFIG_PATH = os.path.join("configuration", "config.json")
+CONFIG = load_json(CONFIG_PATH)
 
 PREM_URL = "https://draft.premierleague.com/"
-
-# Specify the path to the parent directory
-parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-folder_path = 'data'
+API_RESULTS_FOLDER = os.path.join("data", "api_results")
 
 def get_json():
-    """
-    Pulls fpl draft league data using an api call, and stores the output
-    in a json file at the specified location.
-    
-    To get the FPL Draft api call, I followed advice on [Reddit here](https://www.reddit.com/r/FantasyPL/comments/9rclpj/python_for_fantasy_football_using_the_fpl_api/e8g6ur4?utm_source=share&utm_medium=web2x) which basically said you can derive the API calls by using Chrome's developer window under network you can see the "fetches" that are made, and the example response data. Very cool!
-    
-    :param file_path: The file path and name of the json file you wish to create
-    :param api: The api call for your fpl draft league
-    :returns: 
-    """
-
-    
     apis = ['api/draft/entry/301781/transactions',
-       'api/bootstrap-static',
-       'api/bootstrap-dynamic',
-       'api/league/73698/details',
-       'api/league/73698/element-status']
+            'api/bootstrap-static',
+            'api/bootstrap-dynamic',
+            'api/league/73698/details',
+            'api/league/73698/element-status'
+        ]
     
     # Post credentials for authentication
     session = requests.session()
     url = 'https://users.premierleague.com/accounts/login/'
     payload = {
-     'password': config.get('api', 'password'),
-     'login': config.get('api', 'username'),
+     'password': CONFIG.get('api', 'password'),
+     'login': CONFIG.get('api', 'username'),
      'redirect_uri': 'https://fantasy.premierleague.com/a/login',
      'app': 'plfpl-web'
     }
@@ -49,45 +34,45 @@ def get_json():
     for url in apis:
         r = session.get(PREM_URL + url)
         jsonResponse = r.json()
-        file_path = os.path.join(parent_directory, folder_path, os.path.basename(url))
+        file_path = os.path.join(API_RESULTS_FOLDER, os.path.basename(url))
         with open(f"{file_path}.json", 'w') as outfile:
             json.dump(jsonResponse, outfile)
             
 
-def get_data(df_name):
+def get_dataframe(df_name):
     
     # Dataframes from the details.json
     if df_name == 'league_entries':
-        with open(os.path.join(parent_directory, folder_path, 'details.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
             d = json.load(json_data)
             league_entry_df = json_normalize(d['league_entries'])
             
         return league_entry_df
     
     elif df_name == 'matches':
-        with open(os.path.join(parent_directory, folder_path, 'details.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
             d = json.load(json_data)
             matches_df = json_normalize(d['matches'])
             
         return matches_df
     
     elif df_name == 'standings':
-        with open(os.path.join(parent_directory, folder_path, 'details.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
             d = json.load(json_data)
             standings_df = json_normalize(d['standings'])
             
         return standings_df
     
-    # Dataframes from the elements.json
+    # Dataframes from the bootstrap-static.json
     elif df_name == 'elements':
-        with open(os.path.join(parent_directory, folder_path, 'elements.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
             d = json.load(json_data)
             elements_df = json_normalize(d['elements'])
             
         return elements_df
     
     elif df_name == 'element_types':
-        with open(os.path.join(parent_directory, folder_path, 'elements.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
             d = json.load(json_data)
             element_types_df = json_normalize(d['element_types'])
             
@@ -95,32 +80,22 @@ def get_data(df_name):
     
     # Dataframes from the transactions.json
     elif df_name == 'transactions':
-        with open(os.path.join(parent_directory, folder_path, 'transactions.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'transactions.json')) as json_data:
             d = json.load(json_data)
             transactions_df = json_normalize(d['transactions'])
             
         return transactions_df
     
-    # Dataframes from the element_status.json
+    # Dataframes from the element-status.json
     elif df_name == 'element_status':
-        with open(os.path.join(parent_directory, folder_path, 'element_status.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'element-status.json')) as json_data:
             d = json.load(json_data)
             element_status_df = json_normalize(d['element_status'])
             
         return element_status_df
     
-    
+# pulls player gameweek data for a specified list of players
 def get_player_data(elements):
-    """
-    Function to pull element gameweek data for a specified list of
-    elements.
-    
-    :param email_address: The email address to authenticate with the fpl website.
-    :param elements: The list of elements you wish to pull data for.
-    
-    :return:
-    """
-    
     for element in elements:
         
         # Write the api call
@@ -130,8 +105,8 @@ def get_player_data(elements):
         session = requests.session()
         url = 'https://users.premierleague.com/accounts/login/'
         payload = {
-         'password': config.get('api', 'password'),
-         'login': config.get('api', 'username'),
+         'password': CONFIG.get('api', 'password'),
+         'login': CONFIG.get('api', 'username'),
          'redirect_uri': 'https://fantasy.premierleague.com/a/login',
          'app': 'plfpl-web'
         }
@@ -141,7 +116,7 @@ def get_player_data(elements):
         for url in apis:
             r = session.get(PREM_URL + url)
             jsonResponse = r.json()
-            file_path = os.path.join(parent_directory, folder_path, os.path.basename(url))
+            file_path = os.path.join(API_RESULTS_FOLDER, os.path.basename(url))
             with open(f"{file_path}.json", 'w') as outfile:
                 json.dump(jsonResponse, outfile)
     
@@ -149,12 +124,12 @@ def get_player_data(elements):
 def get_team_players_agg_data():
     
     # Pull the required dataframes
-    element_status_df = get_data('element_status')
-    elements_df = get_data('elements')
-    element_types_df = get_data('element_types')
-    league_entry_df = get_data('league_entries')
-    matches_df = get_data('matches')
-    standings_df = get_data('standings')
+    element_status_df = get_dataframe('element_status')
+    elements_df = get_dataframe('elements')
+    element_types_df = get_dataframe('element_types')
+    league_entry_df = get_dataframe('league_entries')
+    matches_df = get_dataframe('matches')
+    standings_df = get_dataframe('standings')
     
     # Built the initial player -> team dataframe
     players_df = (pd.merge(element_status_df,
@@ -225,28 +200,20 @@ def get_team_players_gw_data():
 
 def get_num_gameweeks():
     
-    matches_df = get_data('matches')       
+    matches_df = get_dataframe('matches')       
     num_gameweeks = matches_df[matches_df['finished'] == True]['event'].max()
     
     return num_gameweeks
 
-
+# Pulls gameweek data for a given list of players
 def get_player_gameweek_data(elements, gameweek):
-    """
-    Pull gameweek data for a given list of elements/players
-    
-    :param elements: The list of elements/players you wish to obtain gameweek data for.
-    :param gameweek: The gameweek you want the data limited to
-    
-    :return: Dataframe of gameweek data for each player
-    """
     players_dict = {}
     
     # For each element we want to pull
     for element in elements:
         
         # Load the json data and put into players_df
-        with open(f'../data/elements/{element}.json') as json_data:
+        with open(f'data/elements/{element}.json') as json_data:
             d = json.load(json_data)
             players_dict[element] = json_normalize(d['history'])
             players_df = pd.concat(players_dict, ignore_index=True)

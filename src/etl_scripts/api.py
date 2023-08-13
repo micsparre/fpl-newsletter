@@ -2,10 +2,10 @@ import os
 import requests
 import json
 from pandas import json_normalize
-from configparser import ConfigParser
+from lib.utils import load_json
 
-config = ConfigParser()
-config.read('config.ini')
+CONFIG_PATH = os.path.join("configuration", "config.json")
+CONFIG = load_json(CONFIG_PATH)
 
 # BASE API URL
 PREM_URL = "https://draft.premierleague.com/"
@@ -38,8 +38,8 @@ def get_players():
     session = requests.session()
     url = 'https://users.premierleague.com/accounts/login/'
     payload = {
-     'password': config.get('api', 'password'),
-     'login': config.get('api', 'username'),
+     'password': CONFIG.get('api', 'password'),
+     'login': CONFIG.get('api', 'username'),
      'redirect_uri': 'https://fantasy.premierleague.com/a/login',
      'app': 'plfpl-web'
     }
