@@ -13,7 +13,7 @@ PREM_URL = "https://draft.premierleague.com/"
 # Specify the path to the parent directory
 # PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-EXPORT_DIR = 'data'
+API_RESULTS_FOLDER = os.path.join("data", "api_results")
 
 def get_players():
     """
@@ -49,62 +49,56 @@ def get_players():
     for url in apis:
         r = session.get(PREM_URL + url)
         jsonResponse = r.json()
-        file_path = os.path.join(EXPORT_DIR, os.path.basename(url))
+        file_path = os.path.join(API_RESULTS_FOLDER, os.path.basename(url))
         with open(f"{file_path}.json", 'w') as outfile:
             json.dump(jsonResponse, outfile)
+    return
             
-# returns df from api objects
-def get_data(df_name):
+# returns dataframe of api object denoted by df_name
+def get_dataframe(df_name):
     
     # Dataframes from the details.json
     if df_name == 'league_entries':
-        with open(os.path.join(EXPORT_DIR, 'details.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
             d = json.load(json_data)
-            league_entry_df = json_normalize(d['league_entries'])
-            
+            league_entry_df = json_normalize(d['league_entries'])    
         return league_entry_df
     
     elif df_name == 'matches':
-        with open(os.path.join(EXPORT_DIR, 'details.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
             d = json.load(json_data)
-            matches_df = json_normalize(d['matches'])
-            
+            matches_df = json_normalize(d['matches'])    
         return matches_df
     
     elif df_name == 'standings':
-        with open(os.path.join(EXPORT_DIR, 'details.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
             d = json.load(json_data)
-            standings_df = json_normalize(d['standings'])
-            
+            standings_df = json_normalize(d['standings'])    
         return standings_df
     
-    # Dataframes from the elements.json
+    # Dataframes from the bootstrap-static.json
     elif df_name == 'elements':
-        with open(os.path.join(EXPORT_DIR, 'bootstrap-static.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
             d = json.load(json_data)
-            elements_df = json_normalize(d['elements'])
-            
+            elements_df = json_normalize(d['elements'])    
         return elements_df
     
     elif df_name == 'element_types':
-        with open(os.path.join(EXPORT_DIR, 'bootstrap-static.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
             d = json.load(json_data)
-            element_types_df = json_normalize(d['element_types'])
-            
+            element_types_df = json_normalize(d['element_types'])    
         return element_types_df
     
     # Dataframes from the transactions.json
     elif df_name == 'transactions':
-        with open(os.path.join(EXPORT_DIR, 'transactions.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'transactions.json')) as json_data:
             d = json.load(json_data)
-            transactions_df = json_normalize(d['transactions'])
-            
+            transactions_df = json_normalize(d['transactions'])    
         return transactions_df
     
-    # Dataframes from the element_status.json
+    # Dataframes from the element-status.json
     elif df_name == 'element_status':
-        with open(os.path.join(EXPORT_DIR, 'element_status.json')) as json_data:
+        with open(os.path.join(API_RESULTS_FOLDER, 'element-status.json')) as json_data:
             d = json.load(json_data)
-            element_status_df = json_normalize(d['element_status'])
-            
+            element_status_df = json_normalize(d['element_status'])    
         return element_status_df
