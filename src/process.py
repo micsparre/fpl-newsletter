@@ -1,10 +1,10 @@
 import pandas as pd
 import os
-from lib.utils import load_json
+from services.utils import load_json
 from etl_scripts.api import get_dataframe
-from lib.sql import connect, close_connection, get_df_from_table
-from lib.send_sms import send_sms
-from lib.send_email import send_email
+from services.sql import connect, close_connection, get_df_from_table
+from services.send_sms import send_sms
+from services.send_email import send_email
 
 API_RESULTS_FOLDER = os.path.join("data", "api_results")
 REPORT_PATH = os.path.join("data", "generated_reports", "players.xlsx")

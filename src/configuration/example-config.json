@@ -1,0 +1,17 @@
+{
+    "api" : {
+        "username" : "example-PL-email@gmail.com",
+        "password" : "example-PL-password"
+    },
+    "twilio" : {
+        "sid" : "example-SID",
+        "token" : "example-auth-token",
+        "to_number" : "+10009998888",
+        "from_number" : "+17776665555"
+    },
+    "mailjet" : {
+        "api_key" : "example-api-key",
+        "secret_key" : "example-secret-key",
+        "sender_email" : "example-sender-email@gmail.com"
+    }
+}

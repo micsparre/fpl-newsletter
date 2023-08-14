@@ -2,7 +2,7 @@ import os
 import requests
 import json
 from pandas import json_normalize
-from lib.utils import load_json
+from services.utils import load_json
 
 CONFIG_PATH = os.path.join("configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)

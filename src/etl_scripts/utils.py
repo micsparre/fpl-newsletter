@@ -4,7 +4,7 @@ import pandas as pd
 from pandas import json_normalize
 import os
 from etl_scrips.api import get_dataframe
-from lib.utils import load_json
+from services.utils import load_json
 
 CONFIG_PATH = os.path.join("configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
