@@ -38,8 +38,8 @@ def get_players():
     session = requests.session()
     url = 'https://users.premierleague.com/accounts/login/'
     payload = {
-     'password': CONFIG.get('api', 'password'),
-     'login': CONFIG.get('api', 'username'),
+     'password': CONFIG.get('api').get('password'),
+     'login': CONFIG.get('api').get('username'),
      'redirect_uri': 'https://fantasy.premierleague.com/a/login',
      'app': 'plfpl-web'
     }

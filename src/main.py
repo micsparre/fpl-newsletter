@@ -1,3 +1,6 @@
+import os
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from lib.sql import query_table
 from process import process_players
 from etl_scripts.api import get_players

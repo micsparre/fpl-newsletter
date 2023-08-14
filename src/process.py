@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 from lib.utils import load_json
-from etl_scripts.api import get_data
+from etl_scripts.api import get_dataframe
 from lib.sql import connect, close_connection, get_df_from_table
 from lib.send_sms import send_sms
 from lib.send_email import send_email
@@ -56,7 +56,7 @@ def process_players():
 # 'elements' object processed and returned as df
 def process_elements(method):
     if method == "api":
-        elements_df = get_data("elements")
+        elements_df = get_dataframe("elements")
         elements_columns = ["id", "first_name", "second_name", "team", "element_type", "draft_rank", "status"]
         value_map = {'a': 'Active', 'u': 'Transferred', 'i': 'Bad Injury', 's': 'Suspended', 'd': 'Injury'}
         elements_df = elements_df[elements_columns]
@@ -138,8 +138,10 @@ There {"are" if num_new_players != 1 else "is"} {num_new_players or 0} new playe
 
 There {"are" if num_new_players != 1 else "is"} {num_status_updates or 0} player status update{"s" if num_new_players != 1 else ""} this week.
 """
-        rc = send_sms(message_body)
+        # rc = send_sms(message_body)
+        rc = "Updates sent out"
         send_email(REPORT_PATH, message_body)
+        rc = "Updates sent out"
     else:
         rc = "No updates to send out"
     return rc

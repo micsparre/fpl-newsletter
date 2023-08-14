@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from pandas import json_normalize
 import os
+from etl_scrips.api import get_dataframe
 from lib.utils import load_json
 
 CONFIG_PATH = os.path.join("configuration", "config.json")
@@ -22,8 +23,8 @@ def get_player_data(elements):
         session = requests.session()
         url = 'https://users.premierleague.com/accounts/login/'
         payload = {
-         'password': CONFIG.get('api', 'password'),
-         'login': CONFIG.get('api', 'username'),
+         'password': CONFIG.get('api').get('password'),
+         'login': CONFIG.get('api').get('username'),
          'redirect_uri': 'https://fantasy.premierleague.com/a/login',
          'app': 'plfpl-web'
         }
