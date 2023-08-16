@@ -136,7 +136,7 @@ def send_alert(num_new_players, num_status_updates):
         message_body = f"""FPL DRAFT UPDATES\n
 There {"are" if num_new_players != 1 else "is"} {num_new_players or 0} new player{"s" if num_new_players != 1 else ""} this week.
 
-There {"are" if num_new_players != 1 else "is"} {num_status_updates or 0} player status update{"s" if num_new_players != 1 else ""} this week.
+There {"are" if num_status_updates != 1 else "is"} {num_status_updates or 0} player status update{"s" if num_status_updates != 1 else ""} this week.
 """
         # rc = send_sms(message_body)
         rc = "Updates sent out"
