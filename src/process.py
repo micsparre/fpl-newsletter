@@ -122,7 +122,7 @@ def identify_new_players(api_players_df, db_players_df):
 
 # compare api get to db df
 def identify_status_updates(api_players_df, db_players_df):
-    merged_df = pd.merge(api_players_df, db_players_df, on='id', suffixes=["_old", "_new"], how='right')
+    merged_df = pd.merge(api_players_df, db_players_df, on='id', suffixes=["_new", "_old"], how='right')
     status_updates_df = merged_df[merged_df['status_old'] != merged_df['status_new']].copy()
     status_updates_df.sort_values(by=['status_old'], inplace=True)
     status_updates_df = status_updates_df[['id', 'first_name', 'last_name', 'draft_rank', 'owner',
