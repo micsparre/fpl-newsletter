@@ -37,21 +37,23 @@ def process_players():
     db_players_df = process_elements("table")
     new_players_df = identify_new_players(merged_df, db_players_df.loc[:, ['id']])
     status_updates_df = identify_status_updates(merged_df.copy(), db_players_df.loc[:, ['id', 'status']])
-        
-    # print(f"merged_df columns: {merged_df.columns}")
-    # print(f"num rows: {len(merged_df)}")
     
     with pd.ExcelWriter(REPORT_PATH) as writer:
         merged_df.to_excel(writer, sheet_name='player info', index=False)
         new_players_df.to_excel(writer, sheet_name='new players', index=False)
         status_updates_df.to_excel(writer, sheet_name='status updates', index=False)
     
-    rc = send_alert(len(new_players_df), len(status_updates_df))
+    num_new_players, num_status_updates =  len(new_players_df), len(status_updates_df)
+    message_body = f"""FPL DRAFT UPDATES\n
+{num_new_players or 0} new player{"s" if num_new_players != 1 else ""} {"have" if num_new_players != 1 else "has"} joined since the last newsletter.
+
+{num_status_updates or 0} player status update{"s" if num_status_updates != 1 else ""} since the last newsletter.
+"""
     
     conn, cursor = connect()
     merged_df.to_sql(DB, conn, if_exists='replace', index=False)
     close_connection(cursor, conn)
-    return rc
+    return REPORT_PATH, message_body
 
 # 'elements' object processed and returned as df
 def process_elements(method):
@@ -128,20 +130,3 @@ def identify_status_updates(api_players_df, db_players_df):
     status_updates_df = status_updates_df[['id', 'first_name', 'last_name', 'draft_rank', 'owner',
        'team', 'position', 'status_old', 'status_new']]
     return status_updates_df
-
-# send email alert
-def send_alert(num_new_players, num_status_updates):
-    rc = None
-    if num_new_players or num_status_updates:
-        message_body = f"""FPL DRAFT UPDATES\n
-There {"are" if num_new_players != 1 else "is"} {num_new_players or 0} new player{"s" if num_new_players != 1 else ""} this week.
-
-There {"are" if num_status_updates != 1 else "is"} {num_status_updates or 0} player status update{"s" if num_status_updates != 1 else ""} this week.
-"""
-        # rc = send_sms(message_body)
-        rc = "Updates sent out"
-        send_email(REPORT_PATH, message_body)
-        rc = "Updates sent out"
-    else:
-        rc = "No updates to send out"
-    return rc

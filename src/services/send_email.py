@@ -19,9 +19,11 @@ SUBJECT = 'FPL Draft Daily Report'
 MAILJET = Client(auth=(API_KEY, API_SECRET), version="v3.1")
 
 
-def send_email(attachment, message_body):
-    with open(attachment, 'rb') as attachment_file:
-        attachment_data = base64.b64encode(attachment_file.read()).decode('utf-8')
+def send_email(attachment_files, message_body):
+    attachments = []
+    for a in attachment_files:
+        with open(a, 'rb') as attachment_file:
+            attachments.append(base64.b64encode(attachment_file.read()).decode('utf-8'))
 
     data = {
         'Messages': [
@@ -41,15 +43,13 @@ def send_email(attachment, message_body):
             "Attachments": [
                 {
                     "ContentType" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # Content type for Excel files
-                    "Filename": attachment,
-                    "Base64Content": attachment_data
-                }
+                    "Filename": os.path.basename(filename),
+                    "Base64Content": a
+                } for filename, a in zip(attachment_files, attachments)
             ]
             }
         ]
         }
     result = MAILJET.send.create(data=data)
-    print(result.status_code)
-    print(result.json())
-    return
+    return result.json()
 

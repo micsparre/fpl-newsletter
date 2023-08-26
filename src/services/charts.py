@@ -441,6 +441,8 @@ def chart_margins_multi():
             counter += 1
     margins_path = os.path.join("data", "charts", "margin_chart.png")
     plt.savefig(margins_path)
+    
+    return margins_path
 
 
 def get_streaks(matches_df_stacked):
