@@ -1,7 +1,6 @@
-import sys
 import pandas as pd
 import matplotlib.pyplot as plt
-from etl_scripts import utils
+from etl_scripts.utils import *
 
 def get_transactions_df(gameweek, accepted=True):
     """
@@ -13,9 +12,9 @@ def get_transactions_df(gameweek, accepted=True):
     :returns: dataframe with list of every transaction
     """
     
-    entries_df = utils.get_data('league_entries')
-    elements_df = utils.get_data('elements')
-    transactions_df = utils.get_data('transactions')
+    entries_df = get_dataframe('league_entries')
+    elements_df = get_dataframe('elements')
+    transactions_df = get_dataframe('transactions')
 
     entries_df = entries_df[['entry_id', 'player_first_name']]
     elements_df = elements_df[['web_name', 'id']]
@@ -71,7 +70,6 @@ def get_transactions_df(gameweek, accepted=True):
     
     if accepted == True:
         df = df[df['result'] == 'a']
-        
     return df
 
 
@@ -115,8 +113,8 @@ def chart_trxn_vol(df):
 
     ax = plt.gca()
 
-    ax.set_xticks(range(1, fpl.get_num_gameweeks()+1))
-    ax.set_xticklabels(range(1, fpl.get_num_gameweeks()+1))
+    ax.set_xticks(range(1, get_num_gameweeks()+1))
+    ax.set_xticklabels(range(1, get_num_gameweeks()+1))
     ax.set_title('FPL Draft League - Transfer volume by gameweek')
 
     ax.spines['right'].set_visible(False)

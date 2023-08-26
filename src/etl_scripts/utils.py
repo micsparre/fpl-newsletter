@@ -3,7 +3,7 @@ import json
 import pandas as pd
 from pandas import json_normalize
 import os
-from etl_scrips.api import get_dataframe
+from etl_scripts.api import get_dataframe, get_player_summary
 from services.utils import load_json
 
 CONFIG_PATH = os.path.join("configuration", "config.json")
@@ -108,17 +108,20 @@ def get_team_players_gw_data():
     players_dict = {}
     
     for element in elements_to_pull:
-        with open(f'../data/elements/{element}.json') as json_data:
+        file_path = os.path.join("data", "api_results", "element-summary", str(element) + ".json")
+        if not os.path.exists(file_path):
+            d = get_player_summary(element)
+        with open(os.path.join("data", "api_results", "element-summary", str(element) + ".json")) as json_data:
             d = json.load(json_data)
-            players_dict[element] = json_normalize(d['history'])
-            players_df = pd.concat(players_dict, ignore_index=True)
+        players_dict[element] = json_normalize(d['history'])
+        players_df = pd.concat(players_dict, ignore_index=True)
             
     return players_df
 
 
 def get_num_gameweeks():
     
-    matches_df = get_dataframe('matches')       
+    matches_df = get_dataframe('matches')
     num_gameweeks = matches_df[matches_df['finished'] == True]['event'].max()
     
     return num_gameweeks
@@ -129,12 +132,15 @@ def get_player_gameweek_data(elements, gameweek):
     
     # For each element we want to pull
     for element in elements:
+        file_path = os.path.join("data", "api_results", "element-summary", str(element) + ".json")
         
         # Load the json data and put into players_df
-        with open(f'data/elements/{element}.json') as json_data:
+        if not os.path.exists(file_path):
+            d = get_player_summary(element)
+        with open(os.path.join("data", "api_results", "element-summary", str(element) + ".json")) as json_data:
             d = json.load(json_data)
-            players_dict[element] = json_normalize(d['history'])
-            players_df = pd.concat(players_dict, ignore_index=True)
-            players_df = players_df[players_df['event'] == 28]
+        players_dict[element] = json_normalize(d['history'])
+        players_df = pd.concat(players_dict, ignore_index=True)
+        players_df = players_df[players_df['event'] == gameweek]
             
     return players_df

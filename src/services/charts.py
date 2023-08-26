@@ -5,15 +5,44 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 from services.transactions import get_transactions_df
+from numpy.random import default_rng
+from etl_scripts.api import *
 
+rng = default_rng()
+
+def jitter_df(df: pd.DataFrame, std_ratio: float) -> pd.DataFrame:
+    """
+    Add jitter to a DataFrame.
+    
+    Adds normal distributed jitter with mean 0 to each of the
+    DataFrame's columns. The jitter's std is the column's std times
+    `std_ratio`.
+    
+    Returns the jittered DataFrame.
+    """
+    std = df.std().values * std_ratio
+    jitter = pd.DataFrame(
+        std * rng.standard_normal(df.shape),
+        index=df.index,
+        columns=df.columns,    
+    )
+    return df + jitter
+
+def generate_random_color():
+    return "#{:02X}{:02X}{:02X}".format(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+NAMES = list(utils.get_dataframe('league_entries')['player_first_name'])
+
+COLORS = [{'color': generate_random_color()} for _ in range(len(NAMES))]
 
 def chart_league_standings_history():
     
     # Pull required data
-    matches_df = utils.get_data('matches')
+    matches_df = utils.get_dataframe('matches')
     matches_df = matches_df[matches_df['finished'] == True]
-    league_entry_df = utils.get_data('league_entries')
+    league_entry_df = utils.get_dataframe('league_entries')
     
     # Join to get team names
     matches_df = pd.merge(matches_df,
@@ -61,28 +90,21 @@ def chart_league_standings_history():
     away_df = matches_df[['match', 'away_player', 'away_score', 'away_points']]
     away_df = away_df.rename(columns={'away_player':'team', 'away_score':'score', 'away_points':'points'})
 
-    matches_df_stacked = home_df.append(away_df)
+    matches_df_stacked = pd.concat([home_df, away_df], ignore_index=True)
     matches_df_stacked = matches_df_stacked.sort_values(by='match').reset_index().drop(['index'], axis=1)
 
     pivot_df = matches_df_stacked.pivot(index='match', columns='team', values=['points'])
-
+    
     output_df = pivot_df.cumsum()
+    output_df = jitter_df(output_df, .05)
+    
+    names = list(league_entry_df['player_first_name'])
     
     # Plot the data
-    
     plt.figure(figsize=[15,6])
-
-    plt.plot(output_df['points']['Benji'], label='Benji', marker='o')
-    plt.plot(output_df['points']['Cory'], label='Cory', marker='o')
-    plt.plot(output_df['points']['Dave'], label='Dave', marker='o')
-    plt.plot(output_df['points']['Huw'], label='Huw', marker='o')
-    plt.plot(output_df['points']['James'], label='James', marker='o')
-
-    plt.plot(output_df['points']['John'], label='John', marker='o')
-    plt.plot(output_df['points']['Liam'], label='Liam', marker='o')
-    plt.plot(output_df['points']['Rebecca'], label='Rebecca', marker='o')
-    plt.plot(output_df['points']['Thomas'], label='Thomas', marker='o')
-    plt.plot(output_df['points']['ben'], label='ben', marker='o')
+    
+    for name in names:
+        plt.plot(output_df['points'][name], label=name, marker='o', linewidth=2)
 
     ax = plt.gca()
 
@@ -97,21 +119,22 @@ def chart_league_standings_history():
 
     plt.legend(loc=0)
 
-    
-    plt.savefig(f"{os.environ['HOME']}/Documents/Github/fpl_draft_league/data/standings.png")
-    #plt.show()
+    standings_path = os.path.join("data", "charts", "standings.png")
+    plt.savefig(standings_path)
+
+    return standings_path
 
     
 def chart_top_n_players(n=10):
     
     #### Pull in the needed data ####
     # Element status and filter to owned players only
-    element_status_df = utils.get_data('element_status')
+    element_status_df = utils.get_dataframe('element_status')
     element_status_df = element_status_df[element_status_df['status'] == 'o']
     element_status_df = element_status_df[['element', 'owner']]
     
     # League entries
-    le_df = utils.get_data('league_entries')
+    le_df = utils.get_dataframe('league_entries')
     le_df = le_df[['player_first_name', 'entry_id']]
     
     # Join owner players with league entries (cleaning)
@@ -119,7 +142,7 @@ def chart_top_n_players(n=10):
     owner_df = owner_df.drop(columns=['owner', 'entry_id'])
     
     # Get the actual element data
-    elements_df = utils.get_data('elements')
+    elements_df = utils.get_dataframe('elements')
     elements_df = elements_df[['id', 'web_name']]
     
     # Intermediate player ownership df, merging owners with element details
@@ -131,7 +154,7 @@ def chart_top_n_players(n=10):
     df = utils.get_team_players_gw_data()
     
     # Limit to just the latest completed gameweek
-    df = df[df['event'] == utils.get_num_gameweeks()]
+    df = df[df['event'] <= utils.get_num_gameweeks()]
    
     # Build the final players_df in the clean form we want
     players_df = pd.merge(df,
@@ -142,6 +165,8 @@ def chart_top_n_players(n=10):
 
     players_df = players_df[['web_name', 'player_first_name', 'total_points', 'goals_scored', 'goals_conceded', 'assists', 'bonus']]
     
+    players_df = players_df.groupby(by=['web_name', 'player_first_name'], as_index=False).sum()
+        
     # The final df we need :D filtered to specified top 'n'
     players_df = players_df.sort_values(by='total_points', ascending=False).head(n)
     
@@ -149,58 +174,8 @@ def chart_top_n_players(n=10):
     player_list = list(players_df['player_first_name'])
     
     # Plot!!
-    colour_dict = {
-        'Thomas': 
-            {
-                'color':'#04f5ff',
-                'hatch':True
-            },
-        'Huw':
-            {
-                'color':'#e90052',
-                'hatch':True
-            },
-        'Benji':
-            {
-                'color':'#00ff85',
-                'hatch':True
-            },
-        'John':
-            {
-                'color':'#38003c',
-                'hatch':True
-            },
-        'Dave':
-            {
-                'color':'#EAFF04',
-                'hatch':True
-            },
-        'James':
-            {
-                'color':'#04f5ff',
-                'hatch':False
-            },
-        'Rebecca':
-            {
-                'color':'#e90052',
-                'hatch':False
-            },
-        'Cory':
-            {
-                'color':'#00ff85',
-                'hatch':False
-            },
-        'Liam':
-            {
-                'color':'#38003c',
-                'hatch':False
-            },
-        'ben':
-            {
-                'color':'#EAFF04',
-                'hatch':False
-            }
-    }
+    random.shuffle(COLORS)
+    color_dict = {NAMES[i] : COLORS[i] for i in range(len(NAMES))}
     
     plt.figure(figsize=[10,5])
 
@@ -210,17 +185,14 @@ def chart_top_n_players(n=10):
             )
 
     for i, player in zip(range(10), player_list):
-        mybar[i].set_color(colour_dict[player]['color'])
+        mybar[i].set_color(color_dict[player]['color'])
         mybar[i].set_label(player)
-
-
-        if colour_dict[player]['hatch'] == True:
-            mybar.patches[i].set_hatch('..')
-            mybar.patches[i].set_edgecolor('white')
-            mybar.patches[i].set_facecolor(colour_dict[player]['color'])
-
+    
+    
     ax = plt.gca()
-    ax.legend()
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
     plt.xticks(rotation=80)
                 
     ax.set_xlabel('Top players')
@@ -231,22 +203,23 @@ def chart_top_n_players(n=10):
     ax.spines['top'].set_visible(False)
     
     plt.tight_layout()
-                
-    plt.savefig(f"{os.environ['HOME']}/Documents/Github/fpl_draft_league/data/topnplayers.png")
-    #plt.show()
+    top_players_path = os.path.join("data", "charts", "top_n_players.png")
+    plt.savefig(top_players_path)
+
+    return top_players_path
 
 
 def chart_current_streaks():
     
-    league_entry_df = utils.get_data('league_entries')
-    matches_df = utils.get_data('matches')
+    league_entry_df = utils.get_dataframe('league_entries')
+    matches_df = utils.get_dataframe('matches')
     stacked_df = get_matches_stacked(matches_df, league_entry_df)
     streaks_df = get_streaks(stacked_df)
     
     final_df = streaks_df[streaks_df['match'] == streaks_df.match.max()].sort_values(by='streak', ascending=False)[['team', 'streak']]
     final_df = final_df.sort_values(by='streak', ascending=True)
     
-    # Setup the colours to apply
+    # Setup the colors to apply
     colors = []
 
     for team in final_df['team']:
@@ -261,7 +234,7 @@ def chart_current_streaks():
     
     # Build the plot
     plt.figure()
-    plt.barh(range(10), final_df['streak'], color=colors)
+    plt.barh(range(len(NAMES)), final_df['streak'], color=colors)
     ax = plt.gca()
     
     ax.set_xlabel('Current Streak Value')
@@ -270,20 +243,20 @@ def chart_current_streaks():
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     
-    ax.set_yticks(range(10))
+    ax.set_yticks(range(len(NAMES)))
     ax.set_yticklabels(final_df['team'], va='center')
     
-    plt.savefig(f"{os.environ['HOME']}/Documents/Github/fpl_draft_league/data/streaks.png")
-    #plt.show()
-
-
-def chart_net_xfer_value():
+    streaks_path = os.path.join("data", "charts", "streaks.png")
+    plt.savefig(streaks_path)
     
-    trxns_df = get_transactions_df(28, accepted=True)
+    return streaks_path
+
+def chart_net_xfer_value(gameweek):
+    
+    trxns_df = get_transactions_df(gameweek, accepted=True)
     elements_to_pull = list(trxns_df['player_in_id']) + list(trxns_df['player_out_id'])
-    utils.get_player_data('lee.gower17@gmail.com', elements_to_pull)
-    gw_data_df = utils.get_player_gameweek_data(elements_to_pull, 28)
-                
+    gw_data_df = utils.get_player_gameweek_data(elements_to_pull, gameweek)
+        
     trxns_df = (
         pd.merge(trxns_df, gw_data_df, left_on='player_in_id', right_on='element')
         .drop(columns=['element'])
@@ -312,85 +285,22 @@ def chart_net_xfer_value():
     ]]           
     
     trxns_df['net_xfer_value'] = trxns_df['player_in_points'] - trxns_df['player_out_points']
-    
-    colour_dict = {
-        'Thomas': 
-            {
-                'color':'#04f5ff',
-                'hatch':True,
-                'hatch_type':'x',
-            },
-        'Huw':
-            {
-                'color':'#e90052',
-                'hatch':True,
-                'hatch_type':'/',
-            },
-        'Benji':
-            {
-                'color':'#00ff85',
-                'hatch':True,
-                'hatch_type':'o',
-            },
-        'John':
-            {
-                'color':'#38003c',
-                'hatch':True,
-                'hatch_type':'.',
-            },
-        'Dave':
-            {
-                'color':'#EAFF04',
-                'hatch':True,
-                'hatch_type':'+',
-            },
-        'James':
-            {
-                'color':'#04f5ff',
-                'hatch':False,
-                'hatch_type':'-',
-            },
-        'Rebecca':
-            {
-                'color':'#e90052',
-                'hatch':False,
-                'hatch_type':'*',
-            },
-        'Cory':
-            {
-                'color':'#00ff85',
-                'hatch':False,
-                'hatch_type':'\\',
-            },
-        'Liam':
-            {
-                'color':'#38003c',
-                'hatch':False,
-                'hatch_type':'OO',
-            },
-        'ben':
-            {
-                'color':'#EAFF04',
-                'hatch':False,
-                'hatch_type':'***',
-            }
-    }
                 
-    plt.figure()
+    plt.figure(figsize=(7,7))
     my_bar = plt.barh(trxns_df.player_out + ':\n' + trxns_df.player_in, trxns_df['net_xfer_value'])
+    
+    random.shuffle(COLORS)
+    color_dict = {NAMES[i] : COLORS[i] for i in range(len(NAMES))}
 
     for i, team in enumerate(trxns_df['team']):
-        # my_bar[i].set_color(colour_dict[team]['color'])[
         my_bar[i].set_label(team)
-        my_bar.patches[i].set_hatch(colour_dict[team]['hatch_type'])
         my_bar.patches[i].set_edgecolor('white')
+        my_bar.patches[i].set_facecolor(color_dict[team]['color'])
 
-        if trxns_df.iloc[i]['net_xfer_value'] >= 0:
-
-            my_bar.patches[i].set_facecolor('#00ff85')
-
-        else:
-            my_bar.patches[i].set_facecolor('#e90052')
+        # if trxns_df.iloc[i]['net_xfer_value'] >= 0:
+        #     my_bar.patches[i].set_facecolor('#00ff85')
+        # else:
+        #     my_bar.patches[i].set_facecolor('#e90052')
 
     plt.axvline(x=0, color='grey')
 
@@ -402,100 +312,16 @@ def chart_net_xfer_value():
     ax.set_ylabel("Player out : Player in")
     ax.set_xlabel("Net transfer value")
 
-    plt.legend()
+    # plt.legend()
+    ax.legend(ncol=2, loc=[1,0])
+    
+    # Adjust the plot layout to make room for the legend
+    plt.tight_layout()
                 
-    plt.savefig(f"{os.environ['HOME']}/Documents/Github/fpl_draft_league/data/transfers.png")
-
-def get_points_over_time(matches_df, league_entry_df):
+    transfers_path = os.path.join("data", "charts", "transfers.png")
+    plt.savefig(transfers_path)
     
-    # Filter to played matches    
-    matches_df = matches_df[matches_df['finished'] == True]
-
-    # Join to get team names and player names of entry 1 (home team)
-    matches_df = pd.merge(matches_df,
-                          league_entry_df[['id', 'player_first_name']],
-                          how='left',
-                          left_on='league_entry_1',
-                          right_on='id')
-
-    # Join to get team names and player names of entry 2 (away team)
-    matches_df = pd.merge(matches_df,
-                          league_entry_df[['id', 'player_first_name']],
-                          how='left',
-                          left_on='league_entry_2',
-                          right_on='id')
-
-    # Drop unused columns, rename for clearer columns
-    matches_df = matches_df\
-            .drop(['finished', 'started', 'id_x', 'id_y', 'league_entry_1', 'league_entry_2'], axis=1)\
-            .rename(columns={'event':'match',
-                           'player_first_name_x': 'home_player',
-                           'league_entry_1_points': 'home_score',
-                           'player_first_name_y': 'away_player',
-                           'league_entry_2_points': 'away_score',
-                })
-                
-    
-    def calc_points(df):
-        if df['home_score'] == df['away_score']:
-            df['home_points'] = 1
-            df['away_points'] = 1
-        elif df['home_score'] > df['away_score']:
-            df['home_points'] = 3
-            df['away_points'] = 0
-        else:
-            df['home_points'] = 0
-            df['away_points'] = 3
-        return df
-
-    matches_df = matches_df.apply(calc_points, axis=1)
-    print(f"matches_df columns: {matches_df.columns}")
-    
-    home_df = matches_df[['match', 'home_player', 'home_score', 'home_points']]
-    home_df = home_df.rename(columns={'home_player':'team', 'home_score':'score', 'home_points':'points'})
-
-    away_df = matches_df[['match', 'away_player', 'away_score', 'away_points']]
-    away_df = away_df.rename(columns={'away_player':'team', 'away_score':'score', 'away_points':'points'})
-
-    matches_df_stacked = home_df.append(away_df)
-    matches_df_stacked = matches_df_stacked.sort_values(by='match').reset_index().drop(['index'], axis=1)
-
-    pivot_df = matches_df_stacked.pivot(index='match', columns='team', values=['points'])
-
-    output_df = pivot_df.cumsum()
-    
-    # Plot the data
-    
-    plt.figure(figsize=[15,6])
-
-    plt.plot(output_df['points']['Benji'], label='Benji', marker='o')
-    plt.plot(output_df['points']['Cory'], label='Cory', marker='o')
-    plt.plot(output_df['points']['Dave'], label='Dave', marker='o')
-    plt.plot(output_df['points']['Huw'], label='Huw', marker='o')
-    plt.plot(output_df['points']['James'], label='James', marker='o')
-
-    plt.plot(output_df['points']['John'], label='John', marker='o')
-    plt.plot(output_df['points']['Liam'], label='Liam', marker='o')
-    plt.plot(output_df['points']['Rebecca'], label='Rebecca', marker='o')
-    plt.plot(output_df['points']['Thomas'], label='Thomas', marker='o')
-    plt.plot(output_df['points']['ben'], label='ben', marker='o')
-
-    ax = plt.gca()
-
-    ax.set_xticks(range(1, len(output_df) + 1, 1))
-    ax.set_xticklabels(range(1, len(output_df) + 1, 1))
-    ax.set_xlabel('Gameweek #')
-    ax.set_ylabel('Points total')
-    ax.set_title('FPL Draft League - Points over time')
-
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-
-    plt.legend(loc=0)
-
-    plt.show()
-    
-    return output_df, matches_df_stacked, pivot_df
+    return transfers_path
 
 
 def get_matches_stacked(matches_df, league_entry_df):
@@ -564,10 +390,10 @@ def calc_points(df):
 def chart_margins_single(df, player):
     
     df = df[df['team'] == player]
-    my_colour = np.where(df['margin']>0, '#00ff85', '#e90052')
+    my_color = np.where(df['margin']>0, '#00ff85', '#e90052')
     plt.figure(figsize=(10,6))
 
-    plt.bar(df['match'], df['margin'], color=my_colour)
+    plt.bar(df['match'], df['margin'], color=my_color)
 
     ax = plt.gca()
     ax.set_xticks(range(1, len(df) + 1, 1))
@@ -576,35 +402,45 @@ def chart_margins_single(df, player):
     ax.set_xlabel('Gameweek #')
     ax.set_ylabel('Points margin')
     ax.set_title('Gameweek Points Margins')
-    ax.grid(True, color='778899', alpha=0.1, axis='y')
+    ax.grid(True, color='#778899', alpha=0.1, axis='y')
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-def chart_margins_multi(df, name_dict):
+def chart_margins_multi():
     
-    fig1, ax = plt.subplots(3,3, figsize=(50,20), sharex='col', sharey='row')
+    league_entry_df, matches_df = get_dataframe('league_entries'), get_dataframe('matches')
+    stacked_df = get_matches_stacked(matches_df, league_entry_df)
+    
+    names = list(stacked_df.team.unique())
+    name_dict = dict(enumerate(names))
+
+    rows, cols = 2, 4
+    
+    fig1, ax = plt.subplots(rows, cols, figsize=(28,9), sharex='col')
 
     fig1.suptitle("Gameweek Margins by player", fontsize=30)
 
     counter = 0
-    for i in range(3):
-        for j in range(3):
-            my_colour = np.where(df[df['team'] == name_dict[counter]]['margin']>0, '#00ff85', '#e90052')
-            ax[i, j].bar(df[df['team'] == name_dict[counter]]['match'],
-                         df[df['team'] == name_dict[counter]]['margin'],
-                         color=my_colour
+    for i in range(rows):
+        for j in range(cols):
+            my_color = np.where(stacked_df[stacked_df['team'] == name_dict[counter]]['margin']>0, '#00ff85', '#e90052')
+            ax[i, j].bar(stacked_df[stacked_df['team'] == name_dict[counter]]['match'],
+                         stacked_df[stacked_df['team'] == name_dict[counter]]['margin'],
+                         color=my_color
                         )
             ax[i,j].set_title(f"{name_dict[counter]}", fontsize=20)
-            ax[i,j].set_xticks(range(1, len(df[df['team'] == name_dict[counter]]) + 1, 1))
+            ax[i,j].set_xticks(range(1, len(stacked_df[stacked_df['team'] == name_dict[counter]]) + 1, 1))
             ax[i,j].set_yticks(range(-60,60,10))
-            ax[i,j].set_xticklabels(range(1, len(df[df['team'] == name_dict[counter]]) + 1, 1),fontsize=10)
+            ax[i,j].set_xticklabels(range(1, len(stacked_df[stacked_df['team'] == name_dict[counter]]) + 1, 1),fontsize=10)
             ax[i,j].set_xlabel('Gameweek #',fontsize=15)
             ax[i,j].set_ylabel('Points margin',fontsize=15)
-            ax[i,j].grid(True, color='778899', alpha=0.1, axis='y')
+            ax[i,j].grid(True, color='#778899', alpha=0.1, axis='y')
             ax[i,j].spines['right'].set_visible(False)
             ax[i,j].spines['top'].set_visible(False)
 
             counter += 1
+    margins_path = os.path.join("data", "charts", "margin_chart.png")
+    plt.savefig(margins_path)
 
 
 def get_streaks(matches_df_stacked):

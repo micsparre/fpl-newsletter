@@ -15,6 +15,44 @@ PREM_URL = "https://draft.premierleague.com/"
 
 API_RESULTS_FOLDER = os.path.join("data", "api_results")
 
+def get_player_summary(player_id):
+    PLAYER_API = 'api/element-summary'
+    # Post credentials for authentication
+    session = requests.session()
+    url = 'https://users.premierleague.com/accounts/login/'
+    payload = {
+     'password': CONFIG.get('api').get('password'),
+     'login': CONFIG.get('api').get('username'),
+     'redirect_uri': 'https://fantasy.premierleague.com/a/login',
+     'app': 'plfpl-web'
+    }
+    session.post(url, data=payload)
+    r = session.get(os.path.join(PREM_URL, PLAYER_API, str(player_id)))
+    json_response = r.json()
+    file_path = os.path.join(API_RESULTS_FOLDER, "element-summary", str(player_id))
+    with open(f"{file_path}.json", 'w') as outfile:
+        json.dump(json_response, outfile)
+    return json_response
+
+def get_transactions():
+    data = {
+            "login": CONFIG.get('api').get('password'),
+            "password": CONFIG.get('api').get('username'),
+            "app": "plfpl-web",
+            "redirect_uri": "https://fantasy.premierleague.com/a/login",
+    }
+    session = requests.session()
+    url = 'api/draft/league/73698/transactions'
+    r = session.get(
+        PREM_URL + url, data=data, headers={}
+    )
+    json_response = r.json()
+    if r.status_code == 200:
+        file_path = os.path.join(API_RESULTS_FOLDER, os.path.basename(url))
+        with open(f"{file_path}.json", 'w') as outfile:
+            json.dump(json_response, outfile)
+    return
+
 def get_players():
     """
     Pulls fpl draft league data using an api call, and stores the output
@@ -27,12 +65,13 @@ def get_players():
     :param api: The api call for your fpl draft league
     :returns: 
     """
-    
-    apis = ['api/draft/entry/301781/transactions',
+
+    apis = [
        'api/bootstrap-static',
        'api/bootstrap-dynamic',
        'api/league/73698/details',
-       'api/league/73698/element-status']
+       'api/league/73698/element-status'
+       ]
     
     # Post credentials for authentication
     session = requests.session()
@@ -47,11 +86,11 @@ def get_players():
     
     # Loop over the api(s), call them and capture the response(s)
     for url in apis:
-        r = session.get(PREM_URL + url)
-        jsonResponse = r.json()
+        r = session.get(os.path.join(PREM_URL, url))
+        json_response = r.json()
         file_path = os.path.join(API_RESULTS_FOLDER, os.path.basename(url))
         with open(f"{file_path}.json", 'w') as outfile:
-            json.dump(jsonResponse, outfile)
+            json.dump(json_response, outfile)
     return
             
 # returns dataframe of api object denoted by df_name
