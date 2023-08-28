@@ -5,37 +5,13 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import random
 from services.transactions import get_transactions_df
-from numpy.random import default_rng
 from etl_scripts.api import *
 
-rng = default_rng()
-
-def jitter_df(df: pd.DataFrame, std_ratio: float) -> pd.DataFrame:
-    """
-    Add jitter to a DataFrame.
-    
-    Adds normal distributed jitter with mean 0 to each of the
-    DataFrame's columns. The jitter's std is the column's std times
-    `std_ratio`.
-    
-    Returns the jittered DataFrame.
-    """
-    std = df.std().values * std_ratio
-    jitter = pd.DataFrame(
-        std * rng.standard_normal(df.shape),
-        index=df.index,
-        columns=df.columns,    
-    )
-    return df + jitter
-
-def generate_random_color():
-    return "#{:02X}{:02X}{:02X}".format(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-
+COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:olive', 'tab:cyan', 'tab:gray']
 NAMES = list(utils.get_dataframe('league_entries')['player_first_name'])
 
-COLORS = [{'color': generate_random_color()} for _ in range(len(NAMES))]
+COLOR_MAPPINGS = { name : color for name, color in zip(NAMES, COLORS) }
 
 def chart_league_standings_history():
     
@@ -95,8 +71,10 @@ def chart_league_standings_history():
 
     pivot_df = matches_df_stacked.pivot(index='match', columns='team', values=['points'])
     
+    
     output_df = pivot_df.cumsum()
-    output_df = jitter_df(output_df, .05)
+    gameweek_zero = pd.Series([0] * len(output_df.columns), index=output_df.columns).to_frame().T
+    output_df = pd.concat([gameweek_zero, output_df], ignore_index=True)
     
     names = list(league_entry_df['player_first_name'])
     
@@ -104,12 +82,12 @@ def chart_league_standings_history():
     plt.figure(figsize=[15,6])
     
     for name in names:
-        plt.plot(output_df['points'][name], label=name, marker='o', linewidth=2)
+        plt.plot(output_df['points'][name], label=name, marker='o', linewidth=2, color=COLOR_MAPPINGS[name])
 
     ax = plt.gca()
 
-    ax.set_xticks(range(1, len(output_df) + 1, 1))
-    ax.set_xticklabels(range(1, len(output_df) + 1, 1))
+    ax.set_xticks(range(0, len(output_df) + 1, 1))
+    ax.set_xticklabels(range(0, len(output_df) + 1, 1))
     ax.set_xlabel('Gameweek #')
     ax.set_ylabel('Points total')
     ax.set_title('FPL Draft League - Points over time')
@@ -117,7 +95,7 @@ def chart_league_standings_history():
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    plt.legend(loc=0)
+    plt.legend(loc='upper right')
 
     standings_path = os.path.join("data", "charts", "standings.png")
     plt.savefig(standings_path)
@@ -149,12 +127,11 @@ def chart_top_n_players(n=10):
     po_df = pd.merge(owner_df, elements_df, left_on='element', right_on='id')
     po_df = po_df.drop(columns=['id'])
     
-    
     # Pull all the teams' players gameweek data
     df = utils.get_team_players_gw_data()
     
     # Limit to just the latest completed gameweek
-    df = df[df['event'] <= utils.get_num_gameweeks()]
+    df = df[df['event'] == utils.get_num_gameweeks()]
    
     # Build the final players_df in the clean form we want
     players_df = pd.merge(df,
@@ -163,7 +140,7 @@ def chart_top_n_players(n=10):
               left_on='element',
               right_on='element')
 
-    players_df = players_df[['web_name', 'player_first_name', 'total_points', 'goals_scored', 'goals_conceded', 'assists', 'bonus']]
+    players_df = players_df[['web_name', 'player_first_name', 'total_points', 'goals_scored', 'goals_conceded', 'assists', 'bonus', 'event']]
     
     players_df = players_df.groupby(by=['web_name', 'player_first_name'], as_index=False).sum()
         
@@ -173,31 +150,33 @@ def chart_top_n_players(n=10):
     # Get list of league entry players
     player_list = list(players_df['player_first_name'])
     
-    # Plot!!
-    random.shuffle(COLORS)
-    color_dict = {NAMES[i] : COLORS[i] for i in range(len(NAMES))}
-    
     plt.figure(figsize=[10,5])
 
-    mybar = plt.bar(range(10),
+    mybar = plt.bar(range(n),
             players_df['total_points'],
             tick_label=players_df['web_name']
             )
+    
+    # Add value labels on top of the bars
+    for i, v in enumerate(list(players_df['total_points'])):
+        plt.text(i, v + 0.5, str(v), ha='center')
 
-    for i, player in zip(range(10), player_list):
-        mybar[i].set_color(color_dict[player]['color'])
+    for i, player in zip(range(len(player_list)), player_list):
+        mybar[i].set_color(COLOR_MAPPINGS[player])
         mybar[i].set_label(player)
     
     
     ax = plt.gca()
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys())
+    # plt.legend(by_label.values(), by_label.keys(), loc='upper right')
+    plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.1, 1), loc='upper right', borderaxespad=0)
     plt.xticks(rotation=80)
                 
     ax.set_xlabel('Top players')
     ax.set_ylabel('Points total')
-    ax.set_title('Top 10 owned players')
+    ax.set_title('Top 10 owned players this week')
+    ax.set_yticks(range(0, 0))
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -237,7 +216,7 @@ def chart_current_streaks():
     plt.barh(range(len(NAMES)), final_df['streak'], color=colors)
     ax = plt.gca()
     
-    ax.set_xlabel('Current Streak Value')
+    ax.set_xlabel('Current Streak')
     ax.set_title('Current Team Streaks')
 
     ax.spines['right'].set_visible(False)
@@ -287,15 +266,12 @@ def chart_net_xfer_value(gameweek):
     trxns_df['net_xfer_value'] = trxns_df['player_in_points'] - trxns_df['player_out_points']
                 
     plt.figure(figsize=(7,7))
-    my_bar = plt.barh(trxns_df.player_out + ':\n' + trxns_df.player_in, trxns_df['net_xfer_value'])
-    
-    random.shuffle(COLORS)
-    color_dict = {NAMES[i] : COLORS[i] for i in range(len(NAMES))}
+    my_bar = plt.barh(trxns_df.player_out + ':\n' + trxns_df.player_in, trxns_df['net_xfer_value'])    
 
     for i, team in enumerate(trxns_df['team']):
         my_bar[i].set_label(team)
         my_bar.patches[i].set_edgecolor('white')
-        my_bar.patches[i].set_facecolor(color_dict[team]['color'])
+        my_bar.patches[i].set_facecolor(COLOR_MAPPINGS[team])
 
         # if trxns_df.iloc[i]['net_xfer_value'] >= 0:
         #     my_bar.patches[i].set_facecolor('#00ff85')
@@ -303,7 +279,10 @@ def chart_net_xfer_value(gameweek):
         #     my_bar.patches[i].set_facecolor('#e90052')
 
     plt.axvline(x=0, color='grey')
-
+    
+    # Add value labels to the right (top) of the bars
+    for i, v in enumerate(list(trxns_df['net_xfer_value'])):
+        plt.text(v + 0.5, i, str(v), va='center')
 
     ax = plt.gca()
     ax.spines['right'].set_visible(False)
@@ -312,8 +291,9 @@ def chart_net_xfer_value(gameweek):
     ax.set_ylabel("Player out : Player in")
     ax.set_xlabel("Net transfer value")
 
-    # plt.legend()
-    ax.legend(ncol=2, loc=[1,0])
+    handles, labels = ax.get_legend_handles_labels()
+    unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
+    ax.legend(*zip(*unique))
     
     # Adjust the plot layout to make room for the legend
     plt.tight_layout()

@@ -108,11 +108,12 @@ def get_team_players_gw_data():
     players_dict = {}
     
     for element in elements_to_pull:
-        file_path = os.path.join("data", "api_results", "element-summary", str(element) + ".json")
-        if not os.path.exists(file_path):
-            d = get_player_summary(element)
-        with open(os.path.join("data", "api_results", "element-summary", str(element) + ".json")) as json_data:
-            d = json.load(json_data)
+        
+        d = get_player_summary(element)
+                    
+        # with open(os.path.join("data", "api_results", "element-summary", str(element) + ".json")) as json_data:
+        #     d = json.load(json_data)
+        
         players_dict[element] = json_normalize(d['history'])
         players_df = pd.concat(players_dict, ignore_index=True)
             
