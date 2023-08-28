@@ -12,14 +12,14 @@ GAMEWEEK = 3
 # entry point to program
 def main():
     
-    # get_transactions()
-    # get_players()
-    # report_path, message_body = process_players()
+    get_transactions()
+    get_players()
+    report_path, message_body = process_players()
     
     paths = build_charts(GAMEWEEK)
 
-    # rc = send_email(paths + [report_path], message_body)
-    # print(rc)
+    rc = send_email(paths + [report_path], message_body)
+    print(rc)
 
     return
        
