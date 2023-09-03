@@ -7,7 +7,7 @@ from etl_scripts.api import get_players, get_transactions
 from services.build_charts import build_charts
 from services.send_email import send_email
 
-GAMEWEEK = 3
+GAMEWEEK = 4
 
 # entry point to program
 def main():
