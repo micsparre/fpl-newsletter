@@ -3,6 +3,7 @@ import requests
 import json
 from pandas import json_normalize
 from services.utils import load_json
+from services.sql import connect, close_connection
 
 CONFIG_PATH = os.path.join("configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
@@ -128,6 +129,12 @@ def get_dataframe(df_name):
             element_types_df = json_normalize(d['element_types'])    
         return element_types_df
     
+    elif df_name == 'events':
+        with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
+            d = json.load(json_data)
+            events_df = json_normalize(d['events'])    
+        return events_df
+    
     # Dataframes from the transactions.json
     elif df_name == 'transactions':
         with open(os.path.join(API_RESULTS_FOLDER, 'transactions.json')) as json_data:
@@ -141,3 +148,15 @@ def get_dataframe(df_name):
             d = json.load(json_data)
             element_status_df = json_normalize(d['element_status'])    
         return element_status_df
+
+def get_gameweek():
+    with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
+            events = json.load(json_data)
+            events = events["events"]
+
+    current = events["current"]
+    events_df = json_normalize(events["data"])
+    events_df = events_df[["id", "finished"]]
+    events_df["finished"] = events_df['finished'].replace({True: 1, False: 0})
+    events_df.rename(columns={"id":"gameweek", "finished":"charts_sent_status"}, inplace=True)
+    return current, events_df

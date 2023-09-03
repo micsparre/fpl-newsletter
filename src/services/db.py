@@ -14,5 +14,9 @@ class Players(Table):
     def __init__(self) -> None:
         self.table_name = "players"
         
+class Newsletter(Table):
+    
+    def __init__(self) -> None:
+        self.table_name = "newsletter"
     
         

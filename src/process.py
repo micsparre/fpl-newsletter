@@ -8,7 +8,7 @@ from services.send_email import send_email
 
 API_RESULTS_FOLDER = os.path.join("data", "api_results")
 REPORT_PATH = os.path.join("data", "generated_reports", "players.xlsx")
-DB = "players"
+PLAYERS_DB = "players"
 
 # transform and load the api data into the players table
 def process_players():
@@ -51,7 +51,7 @@ def process_players():
 """
     
     conn, cursor = connect()
-    merged_df.to_sql(DB, conn, if_exists='replace', index=False)
+    merged_df.to_sql(PLAYERS_DB, conn, if_exists='replace', index=False)
     close_connection(cursor, conn)
     return REPORT_PATH, message_body
 
@@ -86,14 +86,7 @@ def process_owners():
     owners_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
     owners_df = pd.json_normalize(owners_json["league_entries"])
     owners_columns = ["entry_id", "entry_name"]
-    # owners_columns = ["entry_id", "entry_name", "player_first_name", "player_last_name"]
     owners_df = owners_df[owners_columns]
-    
-    # alt_owners_df = owners_df.rename(columns={"entry_id" : "id", "entry_name" : "team", "player_first_name" : "first_name", "player_last_name" : "last_name"})
-    # conn, cursor = connect()
-    # alt_owners_df.to_sql(DB, conn, if_exists='replace', index=False)
-    # close_connection(cursor, conn)
-
     return owners_df
 
 # 'teams' object processed and returned as df
