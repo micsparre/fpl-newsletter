@@ -2,7 +2,7 @@
 ---
 I picked up this hobby project from [leej11/fpl_draft_league](https://github.com/leej11/fpl_draft_league) ⚽️
 
-The starter code in this project from [leej11](https://github.com/leej11) provided a solid foundation of calling the Premier League's Fantasy API and creating nice chart visualizations for user groups.
+The starter code in this project from [leej11](https://github.com/leej11) provided a solid foundation of calling the Premier League's Fantasy API and creating chart visualizations for user groups.
 
 I have extended the project to email myself a generated report of players that have been added to the league and any injury/transfer status updates of players, as a scheduled job.
 
