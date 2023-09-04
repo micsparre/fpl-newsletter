@@ -1,4 +1,4 @@
-# FPL Draft League
+# fpl_newsletter
 ---
 I picked up this hobby project from [leej11/fpl_draft_league](https://github.com/leej11/fpl_draft_league) ⚽️
 
