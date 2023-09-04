@@ -7,7 +7,7 @@ gameweek, events_df = get_gameweek()
 
 # builds the charts and returns the paths
 def build_charts():
-    if check_status() or True:
+    if check_status():
     
         standings_path = chart_league_standings_history()
         
