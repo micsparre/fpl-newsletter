@@ -3,8 +3,6 @@ import os
 from services.utils import load_json
 from etl_scripts.api import get_dataframe
 from services.sql import connect, close_connection, get_df_from_table
-from services.send_sms import send_sms
-from services.send_email import send_email
 
 API_RESULTS_FOLDER = os.path.join("data", "api_results")
 REPORT_PATH = os.path.join("data", "generated_reports", "players.xlsx")
@@ -48,7 +46,7 @@ def process_players():
 {num_new_players or 0} new player{"s" if num_new_players != 1 else ""} {"have" if num_new_players != 1 else "has"} joined since the last newsletter.
 
 {num_status_updates or 0} player status update{"s" if num_status_updates != 1 else ""} since the last newsletter.
-"""
+""" if num_new_players + num_status_updates > 0 else ""
     
     conn, cursor = connect()
     merged_df.to_sql(PLAYERS_DB, conn, if_exists='replace', index=False)

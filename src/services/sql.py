@@ -86,6 +86,4 @@ def execute_query(SQL):
     rows = cursor.fetchall()
     conn.commit()
     close_connection(cursor, conn)
-    for row in rows:
-        print(row)
     return rows

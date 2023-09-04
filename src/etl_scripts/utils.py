@@ -129,19 +129,28 @@ def get_num_gameweeks():
 
 # Pulls gameweek data for a given list of players
 def get_player_gameweek_data(elements, gameweek):
-    players_dict = {}
+    columns = ['id', 'detail', 'event', 'assists', 'bonus', 'bps', 'clean_sheets',
+       'creativity', 'goals_conceded', 'goals_scored', 'ict_index',
+       'influence', 'minutes', 'own_goals', 'penalties_missed',
+       'penalties_saved', 'red_cards', 'saves', 'threat', 'yellow_cards',
+       'starts', 'expected_goals', 'expected_assists',
+       'expected_goal_involvements', 'expected_goals_conceded', 'total_points',
+       'element', 'fixture', 'opponent_team']
+    players_df = pd.DataFrame(columns=columns)
     
     # For each element we want to pull
     for element in elements:
         file_path = os.path.join("data", "api_results", "element-summary", str(element) + ".json")
+        d = get_player_summary(element)
         
-        # Load the json data and put into players_df
-        if not os.path.exists(file_path):
-            d = get_player_summary(element)
-        with open(os.path.join("data", "api_results", "element-summary", str(element) + ".json")) as json_data:
-            d = json.load(json_data)
-        players_dict[element] = json_normalize(d['history'])
-        players_df = pd.concat(players_dict, ignore_index=True)
-        players_df = players_df[players_df['event'] == gameweek]
+        # # Load the json data and put into players_df
+        # if not os.path.exists(file_path):
+        #     d = get_player_summary(element)
             
+        with open(file_path) as json_data:
+            d = json.load(json_data)
+        players = json_normalize(d['history'])
+        players_df = pd.concat([players_df, players], ignore_index = True)
+    
+    players_df = players_df[players_df["event"] == gameweek]
     return players_df

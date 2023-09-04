@@ -67,7 +67,6 @@ def get_transactions_df(gameweek, accepted=True):
             'result'
         ]]
     )
-    
     if accepted == True:
         df = df[df['result'] == 'a']
     return df

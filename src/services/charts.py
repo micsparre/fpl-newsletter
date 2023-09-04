@@ -231,7 +231,6 @@ def chart_current_streaks():
     return streaks_path
 
 def chart_net_xfer_value(gameweek):
-    
     trxns_df = get_transactions_df(gameweek, accepted=True)
     elements_to_pull = list(trxns_df['player_in_id']) + list(trxns_df['player_out_id'])
     gw_data_df = utils.get_player_gameweek_data(elements_to_pull, gameweek)
@@ -262,10 +261,10 @@ def chart_net_xfer_value(gameweek):
         'player_out_points',
         'result'
     ]]           
-    
+    trxns_df = trxns_df.drop_duplicates()
     trxns_df['net_xfer_value'] = trxns_df['player_in_points'] - trxns_df['player_out_points']
-                
-    plt.figure(figsize=(7,7))
+                    
+    plt.figure(figsize=(8, 8))
     my_bar = plt.barh(trxns_df.player_out + ':\n' + trxns_df.player_in, trxns_df['net_xfer_value'])    
 
     for i, team in enumerate(trxns_df['team']):
@@ -273,18 +272,18 @@ def chart_net_xfer_value(gameweek):
         my_bar.patches[i].set_edgecolor('white')
         my_bar.patches[i].set_facecolor(COLOR_MAPPINGS[team])
 
-        # if trxns_df.iloc[i]['net_xfer_value'] >= 0:
-        #     my_bar.patches[i].set_facecolor('#00ff85')
-        # else:
-        #     my_bar.patches[i].set_facecolor('#e90052')
-
+    values = list(trxns_df['net_xfer_value'])
+    min_val = min(values)
+    max_val = max(values)
     plt.axvline(x=0, color='grey')
+    for i, v in enumerate(values):
+        if v < 0:
+            plt.text(v - .5, i, str(v), color='black', va='center', fontsize=10)
+        else:
+            plt.text(v + .15, i, str(v), color='black', va='center', fontsize=10)
     
-    # Add value labels to the right (top) of the bars
-    for i, v in enumerate(list(trxns_df['net_xfer_value'])):
-        plt.text(v + 0.5, i, str(v), va='center')
-
     ax = plt.gca()
+    ax.set_xticks(np.arange(min(0, ((min_val - 1) //2) * 2), max(2, ((max_val + 1) //2) * 2) + 1, step=2))
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.set_title("Gameweek net transfer value", y=1.08)
