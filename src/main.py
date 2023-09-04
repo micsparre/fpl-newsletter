@@ -13,7 +13,7 @@ def main():
     get_players()
     report_path, message_body = process_players()
     paths = build_charts()
-    rc = send_email(paths + [report_path], message_body)
+    rc = send_email(paths + report_path, message_body)
     print(rc)
     
     return

@@ -19,7 +19,7 @@ SUBJECT = 'FPL Draft Daily Report'
 MAILJET = Client(auth=(API_KEY, API_SECRET), version="v3.1")
 
 def send_email(attachment_files, message_body):
-    if not message_body: return "no updates to send"
+    if len(attachment_files) == 0: return "no updates to send"
     attachments = []
     for a in attachment_files:
         with open(a, 'rb') as attachment_file:
