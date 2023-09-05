@@ -47,7 +47,7 @@ def process_players():
 {num_new_players or 0} new player{"s" if num_new_players != 1 else ""} {"have" if num_new_players != 1 else "has"} joined since the last newsletter.
 
 {num_status_updates or 0} player status update{"s" if num_status_updates != 1 else ""} since the last newsletter.
-"""
+""" if (num_new_players + num_status_updates) > 0 else ""
     
     conn, cursor = connect()
     merged_df.to_sql(PLAYERS_DB, conn, if_exists='replace', index=False)
