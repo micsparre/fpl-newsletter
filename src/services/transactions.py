@@ -1,7 +1,5 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 from etl_scripts.utils import get_dataframe
-from etl_scripts.api import get_gameweek
 
 # returns a processed transactions df based on data from 3 api objects
 def get_transactions_df(gameweek, accepted=True):
