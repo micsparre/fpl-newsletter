@@ -1,6 +1,6 @@
-from twilio.rest import Client
 import os
 from services.utils import load_json
+from twilio.rest import Client
 
 CONFIG_PATH = os.path.join("configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
@@ -14,6 +14,7 @@ TO_NUMBER = CONFIG.get('twilio').get('to_number')
 # Create a Twilio client
 CLIENT = Client(SID, TOKEN)
 
+# [DEPRECATED] sends sms to newsletter recipients
 def send_sms(message_body):
     print(f"message body: {message_body}")
     message = CLIENT.messages.create(

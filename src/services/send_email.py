@@ -18,6 +18,7 @@ SUBJECT = 'FPL Draft Daily Report'
 
 MAILJET = Client(auth=(API_KEY, API_SECRET), version="v3.1")
 
+# sends email to newsletter recipients
 def send_email(attachment_files, message_body):
     if len(attachment_files) == 0: return "no updates to send"
     attachments = []
@@ -39,7 +40,7 @@ def send_email(attachment_files, message_body):
                 }
             ],
             "Subject": SUBJECT,
-            "TextPart": message_body,
+            "TextPart": "FPL Newsletter\n" + message_body,
             "Attachments": [
                 {
                     "ContentType" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # Content type for Excel files

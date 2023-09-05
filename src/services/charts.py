@@ -1,24 +1,23 @@
-import etl_scripts.utils as utils
-import pandas as pd
-import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from services.transactions import get_transactions_df
-from etl_scripts.api import *
+from etl_scripts.api import get_gameweek
+from etl_scripts.utils import get_dataframe, get_team_players_gw_data, get_player_gameweek_data
 
 COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:olive', 'tab:cyan', 'tab:gray']
-NAMES = list(utils.get_dataframe('league_entries')['player_first_name'])
+NAMES = list(get_dataframe('league_entries')['player_first_name'])
 
 COLOR_MAPPINGS = { name : color for name, color in zip(NAMES, COLORS) }
 
+# creates a standings chart up until the current gameweek 
 def chart_league_standings_history():
     
     # Pull required data
-    matches_df = utils.get_dataframe('matches')
+    matches_df = get_dataframe('matches')
     matches_df = matches_df[matches_df['finished'] == True]
-    league_entry_df = utils.get_dataframe('league_entries')
+    league_entry_df = get_dataframe('league_entries')
     
     # Join to get team names
     matches_df = pd.merge(matches_df,
@@ -78,7 +77,6 @@ def chart_league_standings_history():
     
     names = list(league_entry_df['player_first_name'])
     
-    # Plot the data
     plt.figure(figsize=[15,6])
     
     for name in names:
@@ -102,17 +100,16 @@ def chart_league_standings_history():
 
     return standings_path
 
-    
+# creates chart of top N players for the current gameweek
 def chart_top_n_players(n=10):
     
-    #### Pull in the needed data ####
     # Element status and filter to owned players only
-    element_status_df = utils.get_dataframe('element_status')
+    element_status_df = get_dataframe('element_status')
     element_status_df = element_status_df[element_status_df['status'] == 'o']
     element_status_df = element_status_df[['element', 'owner']]
     
     # League entries
-    le_df = utils.get_dataframe('league_entries')
+    le_df = get_dataframe('league_entries')
     le_df = le_df[['player_first_name', 'entry_id']]
     
     # Join owner players with league entries (cleaning)
@@ -120,7 +117,7 @@ def chart_top_n_players(n=10):
     owner_df = owner_df.drop(columns=['owner', 'entry_id'])
     
     # Get the actual element data
-    elements_df = utils.get_dataframe('elements')
+    elements_df = get_dataframe('elements')
     elements_df = elements_df[['id', 'web_name']]
     
     # Intermediate player ownership df, merging owners with element details
@@ -128,10 +125,11 @@ def chart_top_n_players(n=10):
     po_df = po_df.drop(columns=['id'])
     
     # Pull all the teams' players gameweek data
-    df = utils.get_team_players_gw_data()
+    df = get_team_players_gw_data()
     
+    gameweek, _ = get_gameweek()
     # Limit to just the latest completed gameweek
-    df = df[df['event'] == utils.get_num_gameweeks()]
+    df = df[df['event'] == gameweek]
    
     # Build the final players_df in the clean form we want
     players_df = pd.merge(df,
@@ -187,11 +185,11 @@ def chart_top_n_players(n=10):
 
     return top_players_path
 
-
+# creates chart for current winning / losing streaks for every fpl manager
 def chart_current_streaks():
     
-    league_entry_df = utils.get_dataframe('league_entries')
-    matches_df = utils.get_dataframe('matches')
+    league_entry_df = get_dataframe('league_entries')
+    matches_df = get_dataframe('matches')
     stacked_df = get_matches_stacked(matches_df, league_entry_df)
     streaks_df = get_streaks(stacked_df)
     
@@ -230,10 +228,11 @@ def chart_current_streaks():
     
     return streaks_path
 
+# creates a chart visualizing the value of all transfers for a given gameweek
 def chart_net_xfer_value(gameweek):
     trxns_df = get_transactions_df(gameweek, accepted=True)
     elements_to_pull = list(trxns_df['player_in_id']) + list(trxns_df['player_out_id'])
-    gw_data_df = utils.get_player_gameweek_data(elements_to_pull, gameweek)
+    gw_data_df = get_player_gameweek_data(elements_to_pull, gameweek)
         
     trxns_df = (
         pd.merge(trxns_df, gw_data_df, left_on='player_in_id', right_on='element')
@@ -302,12 +301,11 @@ def chart_net_xfer_value(gameweek):
     
     return transfers_path
 
-
+# returns df of all finished matches for every fpl manager
 def get_matches_stacked(matches_df, league_entry_df):
     
     # Limit to finished games only
     matches_df = matches_df[matches_df['started'] == True]
-    # matches_df = matches_df[matches_df['finished'] == True]
 
     if not matches_df.empty:
 
@@ -350,6 +348,7 @@ def get_matches_stacked(matches_df, league_entry_df):
         
         return matches_df_stacked
 
+# calculates points won for each fpl manager
 def calc_points(df):
         if df['home_score'] == df['away_score']:
             df['home_points'] = 1
@@ -366,6 +365,7 @@ def calc_points(df):
         
         return df
 
+# creates a margin victory / loss for a single fpl manager
 def chart_margins_single(df, player):
     
     df = df[df['team'] == player]
@@ -385,6 +385,7 @@ def chart_margins_single(df, player):
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
+# creates margin victory / losses for each player all in one chart
 def chart_margins_multi():
     
     league_entry_df, matches_df = get_dataframe('league_entries'), get_dataframe('matches')
@@ -423,7 +424,7 @@ def chart_margins_multi():
     
     return margins_path
 
-
+# returns winning / losing streaks of each fpl manager as a df
 def get_streaks(matches_df_stacked):
     
     df = matches_df_stacked
@@ -455,6 +456,28 @@ def get_streaks(matches_df_stacked):
     
     return df
 
-
-
+# returns a chart of transaction volume by gameweek
+def chart_trxn_vol(df):
     
+    df = (df[['event', 'player_in']]
+          .groupby('event')
+          .count()
+          .reset_index()
+         )
+    
+    plt.figure()
+
+    plt.bar(df['event'], df['player_in'])
+
+    ax = plt.gca()
+    gameweek, _ = get_gameweek()
+    ax.set_xticks(range(1, gameweek + 1))
+    ax.set_xticklabels(range(1, gameweek + 1))
+    ax.set_title('FPL Draft League - Transfer volume by gameweek')
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+
+    plt.show()
+    
+    return df

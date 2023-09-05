@@ -42,13 +42,12 @@ def process_players():
         status_updates_df.to_excel(writer, sheet_name='status updates', index=False)
     
     num_new_players, num_status_updates =  len(new_players_df), len(status_updates_df)
-    message_body = f"""FPL DRAFT UPDATES\n
+    
+    message_body = f"""
 {num_new_players or 0} new player{"s" if num_new_players != 1 else ""} {"have" if num_new_players != 1 else "has"} joined since the last newsletter.
 
 {num_status_updates or 0} player status update{"s" if num_status_updates != 1 else ""} since the last newsletter.
-
-GAMEWEEK CHARTS ATTACHED BELOW
-""" if num_new_players + num_status_updates > 0 else "GAMEWEEK CHARTS ATTACHED"
+"""
     
     conn, cursor = connect()
     merged_df.to_sql(PLAYERS_DB, conn, if_exists='replace', index=False)
@@ -109,13 +108,13 @@ def process_positions():
     positions_df.rename(columns={"id" : "position_id"}, inplace=True)
     return positions_df
 
-# compare api get to db df
+# compare api player data to sqlite data
 def identify_new_players(api_players_df, db_players_df):
     new_players_df = api_players_df[~api_players_df['id'].isin(db_players_df['id'])].copy()
     new_players_df.sort_values(by=['draft_rank'], inplace=True)
     return new_players_df
 
-# compare api get to db df
+# compare api player status data to sqlite data
 def identify_status_updates(api_players_df, db_players_df):
     merged_df = pd.merge(api_players_df, db_players_df, on='id', suffixes=["_new", "_old"], how='right')
     status_updates_df = merged_df[merged_df['status_old'] != merged_df['status_new']].copy()

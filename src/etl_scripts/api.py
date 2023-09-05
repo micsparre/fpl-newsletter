@@ -3,7 +3,6 @@ import requests
 import json
 from pandas import json_normalize
 from services.utils import load_json
-from services.sql import connect, close_connection
 
 CONFIG_PATH = os.path.join("configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
@@ -11,11 +10,10 @@ CONFIG = load_json(CONFIG_PATH)
 # BASE API URL
 PREM_URL = "https://draft.premierleague.com/"
 
-# Specify the path to the parent directory
-# PARENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+# folder to store api data
 API_RESULTS_FOLDER = os.path.join("data", "api_results")
 
+# retrieves data from 'element-summary' api endpoint
 def get_player_summary(player_id):
     PLAYER_API = 'api/element-summary'
     # Post credentials for authentication
@@ -35,7 +33,9 @@ def get_player_summary(player_id):
         json.dump(json_response, outfile)
     return json_response
 
+# retrieves transaction data based on league number
 def get_transactions():
+    league_number = 73698
     data = {
             "login": CONFIG.get('api').get('password'),
             "password": CONFIG.get('api').get('username'),
@@ -43,7 +43,7 @@ def get_transactions():
             "redirect_uri": "https://fantasy.premierleague.com/a/login",
     }
     session = requests.session()
-    url = 'api/draft/league/73698/transactions'
+    url = f"api/draft/league/{league_number}/transactions"
     r = session.get(
         PREM_URL + url, data=data, headers={}
     )
@@ -54,18 +54,8 @@ def get_transactions():
             json.dump(json_response, outfile)
     return
 
-def get_players():
-    """
-    Pulls fpl draft league data using an api call, and stores the output
-    in a json file at the specified location.
-    
-    To get the FPL Draft api call, I followed advice on [Reddit here](https://www.reddit.com/r/FantasyPL/comments/9rclpj/python_for_fantasy_football_using_the_fpl_api/e8g6ur4?utm_source=share&utm_medium=web2x)
-    which basically said you can derive the API calls by using Chrome's developer window under network you can see the "fetches" that are made, and the example response data. Very cool!
-    
-    :param file_path: The file path and name of the json file you wish to create
-    :param api: The api call for your fpl draft league
-    :returns: 
-    """
+# reterieves general fpl data from multiple api endpoints
+def get_fpl():
 
     apis = [
        'api/bootstrap-static',
@@ -98,42 +88,18 @@ def get_players():
 def get_dataframe(df_name):
     
     # Dataframes from the details.json
-    if df_name == 'league_entries':
+    if df_name == 'league_entries' or df_name == 'matches' or df_name == 'standings':
         with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
             d = json.load(json_data)
-            league_entry_df = json_normalize(d['league_entries'])    
+            league_entry_df = json_normalize(d[df_name])    
         return league_entry_df
     
-    elif df_name == 'matches':
-        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
-            d = json.load(json_data)
-            matches_df = json_normalize(d['matches'])    
-        return matches_df
-    
-    elif df_name == 'standings':
-        with open(os.path.join(API_RESULTS_FOLDER, 'details.json')) as json_data:
-            d = json.load(json_data)
-            standings_df = json_normalize(d['standings'])    
-        return standings_df
-    
     # Dataframes from the bootstrap-static.json
-    elif df_name == 'elements':
+    elif df_name == 'elements' or df_name == 'element_types' or df_name == 'events':
         with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
             d = json.load(json_data)
             elements_df = json_normalize(d['elements'])    
         return elements_df
-    
-    elif df_name == 'element_types':
-        with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
-            d = json.load(json_data)
-            element_types_df = json_normalize(d['element_types'])    
-        return element_types_df
-    
-    elif df_name == 'events':
-        with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
-            d = json.load(json_data)
-            events_df = json_normalize(d['events'])    
-        return events_df
     
     # Dataframes from the transactions.json
     elif df_name == 'transactions':
@@ -149,6 +115,7 @@ def get_dataframe(df_name):
             element_status_df = json_normalize(d['element_status'])    
         return element_status_df
 
+# returns current gameweek and processed events dataframe
 def get_gameweek():
     with open(os.path.join(API_RESULTS_FOLDER, 'bootstrap-static.json')) as json_data:
             events = json.load(json_data)
@@ -160,3 +127,9 @@ def get_gameweek():
     events_df["finished"] = events_df['finished'].replace({True: 1, False: 0})
     events_df.rename(columns={"id":"gameweek", "finished":"charts_sent_status"}, inplace=True)
     return current, events_df
+
+# composite function to retrieve all data from api
+def get_data():
+    get_transactions()
+    get_fpl()
+    return
