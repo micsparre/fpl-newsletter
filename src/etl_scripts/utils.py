@@ -40,7 +40,7 @@ def get_team_players_agg_data():
                            how='left',
                            left_on='element_type',
                            right_on='id')
-                  .drop(columns=['id', 'plural_name_short', 'singular_name', 'singular_name_short'])
+                  .drop(columns=['id'])
                   )
 
     return players_df

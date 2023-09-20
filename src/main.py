@@ -4,6 +4,7 @@ from process import process_players
 from etl_scripts.api import get_data
 from services.build_charts import build_charts
 from services.send_email import send_email
+from services.sql import query_table, reset_gameweek
 
 # entry point to program
 def main():

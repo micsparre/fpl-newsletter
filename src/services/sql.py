@@ -60,7 +60,6 @@ def print_tables():
 # print 10 rows from a given table_name
 def query_table(table_name):
     SQL = f"SELECT * FROM {table_name} LIMIT 10;"
-    # SQL = f"SELECT distinct status FROM {table_name} LIMIT 10;"
     execute_query(SQL)
     return
         
@@ -87,3 +86,9 @@ def execute_query(SQL):
     conn.commit()
     close_connection(cursor, conn)
     return rows
+
+# resets the charts_sent_status for a given gameweek
+def reset_gameweek(gameweek):
+    SQL = f"UPDATE newsletter SET charts_sent_status = 0 where gameweek={gameweek}"
+    execute_query(SQL)
+    return
