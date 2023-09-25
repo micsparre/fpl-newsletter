@@ -4,20 +4,21 @@ from pandas import json_normalize
 from etl_scripts.api import get_dataframe, get_player_summary, get_gameweek
 from services.utils import load_json
 
-CONFIG_PATH = os.path.join("configuration", "config.json")
+CONFIG_PATH = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "..", "configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
 
 
-def get_team_players_agg_data():
+def get_team_players_agg_data(league_number):
     """
     Aggregate data for owned players
     """
 
     # Pull the required dataframes
-    element_status_df = get_dataframe('element_status')
-    elements_df = get_dataframe('elements')
-    element_types_df = get_dataframe('element_types')
-    league_entry_df = get_dataframe('league_entries')
+    element_status_df = get_dataframe('element_status', league_number)
+    elements_df = get_dataframe('elements', league_number)
+    element_types_df = get_dataframe('element_types', league_number)
+    league_entry_df = get_dataframe('league_entries', league_number)
 
     # Build the initial player -> team dataframe
     players_df = (pd.merge(element_status_df,
@@ -49,12 +50,12 @@ def get_team_players_agg_data():
     return players_df
 
 
-def get_team_players_gw_data():
+def get_team_players_gw_data(league_number):
     """
     Aggregate data based on gameweek
     """
 
-    df = get_team_players_agg_data()
+    df = get_team_players_agg_data(league_number)
     elements_to_pull = df['element']
     players_dict = {}
 

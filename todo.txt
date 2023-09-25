@@ -1,0 +1,13 @@
+1. remove owner from players table  
+    -  populate 'ownership' table 
+2. re-factor api.py api functions to re-use get data logic such that you pass (url, file_path) to a function
+3. add unit tests
+    - need to test leagues with different numbers of owners
+    - need to test my login works for all leagues
+4. build database mapping for understanding (primary key / foreign key mappings)
+5. add ability to subscribe (front-end website with a form, back-end to process subscription requests)
+    - email confirmation of subscription
+    - include unsubscribe option in emails sent
+6. support 2 types of fpl leagues (head-to-head and classic)
+7. separate any business logic that is not dependent on league numbers to reduce computation
+8. create iterator over Subscribers table object

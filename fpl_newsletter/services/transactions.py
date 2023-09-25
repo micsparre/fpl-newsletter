@@ -2,14 +2,14 @@ import pandas as pd
 from etl_scripts.utils import get_dataframe
 
 
-def get_transactions_df(gameweek, accepted=True):
+def get_transactions_df(gameweek, league_number, accepted=True):
     """
     Returns a dataframe of transactions for a given gameweek
     """
 
-    entries_df = get_dataframe('league_entries')
-    elements_df = get_dataframe('elements')
-    transactions_df = get_dataframe('transactions')
+    entries_df = get_dataframe('league_entries', league_number)
+    elements_df = get_dataframe('elements', league_number)
+    transactions_df = get_dataframe('transactions', league_number)
 
     entries_df = entries_df[['entry_id', 'player_first_name']]
     elements_df = elements_df[['web_name', 'id']]

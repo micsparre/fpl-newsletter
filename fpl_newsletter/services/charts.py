@@ -8,20 +8,41 @@ from etl_scripts.utils import get_dataframe, get_team_players_gw_data, get_playe
 
 COLORS = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
           'tab:brown', 'tab:pink', 'tab:olive', 'tab:cyan', 'tab:gray']
-NAMES = list(get_dataframe('league_entries')['player_first_name'])
 
-COLOR_MAPPINGS = {name: color for name, color in zip(NAMES, COLORS)}
+RESULTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
 
-def chart_league_standings_history():
+def get_names(league_number):
+    """
+    Returns a list of all fpl manager names
+    """
+
+    league_entry_df = get_dataframe('league_entries', league_number)
+    names = list(league_entry_df['player_first_name'])
+
+    return names
+
+
+def get_color_mappings(league_number):
+    """
+    Returns a dictionary of fpl manager names and their corresponding color
+    """
+
+    names = get_names(league_number)
+    colors = COLORS[:len(names)]
+
+    return {name: color for name, color in zip(names, colors)}
+
+
+def chart_league_standings_history(league_number):
     """
     Creates a chart of the league standings over time
     """
 
     # Pull required data
-    matches_df = get_dataframe('matches')
+    matches_df = get_dataframe('matches', league_number)
     matches_df = matches_df[matches_df['finished'] == True]
-    league_entry_df = get_dataframe('league_entries')
+    league_entry_df = get_dataframe('league_entries', league_number)
 
     # Join to get team names
     matches_df = pd.merge(matches_df,
@@ -86,6 +107,8 @@ def chart_league_standings_history():
 
     plt.figure(figsize=[15, 6])
 
+    COLOR_MAPPINGS = get_color_mappings(league_number)
+
     for name in names:
         plt.plot(output_df['points'][name], label=name,
                  marker='o', linewidth=2, color=COLOR_MAPPINGS[name])
@@ -103,24 +126,25 @@ def chart_league_standings_history():
 
     plt.legend(loc='upper right')
 
-    standings_path = os.path.join("data", "charts", "standings.png")
+    standings_path = os.path.join(
+        RESULTS_PATH, "data", "charts", str(league_number), "standings.png")
     plt.savefig(standings_path)
 
     return standings_path
 
 
-def chart_top_n_players(n=10):
+def chart_top_n_players(league_number, n=10):
     """
     Creates a chart of the top N players for the current gameweek
     """
 
     # Element status and filter to owned players only
-    element_status_df = get_dataframe('element_status')
+    element_status_df = get_dataframe('element_status', league_number)
     element_status_df = element_status_df[element_status_df['status'] == 'o']
     element_status_df = element_status_df[['element', 'owner']]
 
     # League entries
-    le_df = get_dataframe('league_entries')
+    le_df = get_dataframe('league_entries', league_number)
     le_df = le_df[['player_first_name', 'entry_id']]
 
     # Join owner players with league entries (cleaning)
@@ -129,7 +153,7 @@ def chart_top_n_players(n=10):
     owner_df = owner_df.drop(columns=['owner', 'entry_id'])
 
     # Get the actual element data
-    elements_df = get_dataframe('elements')
+    elements_df = get_dataframe('elements', league_number)
     elements_df = elements_df[['id', 'web_name']]
 
     # Intermediate player ownership df, merging owners with element details
@@ -137,7 +161,7 @@ def chart_top_n_players(n=10):
     po_df = po_df.drop(columns=['id'])
 
     # Pull all the teams' players gameweek data
-    df = get_team_players_gw_data()
+    df = get_team_players_gw_data(league_number)
 
     gameweek, _ = get_gameweek()
     # Limit to just the latest completed gameweek
@@ -174,6 +198,8 @@ def chart_top_n_players(n=10):
     for i, v in enumerate(list(players_df['total_points'])):
         plt.text(i, v + 0.5, str(v), ha='center')
 
+    COLOR_MAPPINGS = get_color_mappings(league_number)
+
     for i, player in zip(range(len(player_list)), player_list):
         mybar[i].set_color(COLOR_MAPPINGS[player])
         mybar[i].set_label(player)
@@ -195,19 +221,20 @@ def chart_top_n_players(n=10):
     ax.spines['top'].set_visible(False)
 
     plt.tight_layout()
-    top_players_path = os.path.join("data", "charts", "top_n_players.png")
+    top_players_path = os.path.join(
+        RESULTS_PATH, "data", "charts", str(league_number), "top_n_players.png")
     plt.savefig(top_players_path)
 
     return top_players_path
 
 
-def chart_current_streaks():
+def chart_current_streaks(league_number):
     """
     Creates a chart of the current winning / losing streaks for every fpl manager
     """
 
-    league_entry_df = get_dataframe('league_entries')
-    matches_df = get_dataframe('matches')
+    league_entry_df = get_dataframe('league_entries', league_number)
+    matches_df = get_dataframe('matches', league_number)
     stacked_df = get_matches_stacked(matches_df, league_entry_df)
     streaks_df = get_streaks(stacked_df)
 
@@ -228,9 +255,11 @@ def chart_current_streaks():
         elif final_df[final_df['team'] == team]['streak'].values > 0:
             colors.append('#00ff85')
 
+    num_managers = len(get_names(league_number))
+
     # Build the plot
     plt.figure()
-    plt.barh(range(len(NAMES)), final_df['streak'], color=colors)
+    plt.barh(range(num_managers), final_df['streak'], color=colors)
     ax = plt.gca()
 
     ax.set_xlabel('Current Streak')
@@ -239,20 +268,21 @@ def chart_current_streaks():
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
 
-    ax.set_yticks(range(len(NAMES)))
+    ax.set_yticks(range(num_managers))
     ax.set_yticklabels(final_df['team'], va='center')
 
-    streaks_path = os.path.join("data", "charts", "streaks.png")
+    streaks_path = os.path.join(
+        RESULTS_PATH, "data", "charts", str(league_number), "streaks.png")
     plt.savefig(streaks_path)
 
     return streaks_path
 
 
-def chart_net_xfer_value(gameweek):
+def chart_net_xfer_value(gameweek, league_number):
     """
     Creates a chart of the net transfer value for each transfer made in the given gameweek
     """
-    trxns_df = get_transactions_df(gameweek, accepted=True)
+    trxns_df = get_transactions_df(gameweek, league_number)
     elements_to_pull = list(
         trxns_df['player_in_id']) + list(trxns_df['player_out_id'])
     gw_data_df = get_player_gameweek_data(elements_to_pull, gameweek)
@@ -293,6 +323,8 @@ def chart_net_xfer_value(gameweek):
     my_bar = plt.barh(trxns_df.player_out + ':\n' +
                       trxns_df.player_in, trxns_df['net_xfer_value'])
 
+    COLOR_MAPPINGS = get_color_mappings(league_number)
+
     for i, team in enumerate(trxns_df['team']):
         my_bar[i].set_label(team)
         my_bar.patches[i].set_edgecolor('white')
@@ -327,7 +359,8 @@ def chart_net_xfer_value(gameweek):
     # Adjust the plot layout to make room for the legend
     plt.tight_layout()
 
-    transfers_path = os.path.join("data", "charts", "transfers.png")
+    transfers_path = os.path.join(
+        RESULTS_PATH, "data", "charts", str(league_number), "transfers.png")
     plt.savefig(transfers_path)
 
     return transfers_path
@@ -430,13 +463,13 @@ def chart_margins_single(df, player):
     ax.spines['top'].set_visible(False)
 
 
-def chart_margins_multi():
+def chart_margins_multi(league_number):
     """
     Creates a chart of the margin victory / loss for every fpl manager
     """
 
     league_entry_df, matches_df = get_dataframe(
-        'league_entries'), get_dataframe('matches')
+        'league_entries', league_number), get_dataframe('matches', league_number)
     stacked_df = get_matches_stacked(matches_df, league_entry_df)
 
     names = list(stacked_df.team.unique())
@@ -471,7 +504,8 @@ def chart_margins_multi():
             ax[i, j].spines['top'].set_visible(False)
 
             counter += 1
-    margins_path = os.path.join("data", "charts", "margin_chart.png")
+    margins_path = os.path.join(RESULTS_PATH, "data", "charts", str(
+        league_number), "margin_chart.png")
     plt.savefig(margins_path)
 
     return margins_path

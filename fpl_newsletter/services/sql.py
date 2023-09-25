@@ -4,7 +4,8 @@ import sqlite3
 import pandas as pd
 from services.utils import load_json
 
-DB_PATH = os.path.join("data", "fpl-draft.db")
+DB_PATH = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "..", "data", "fpl-draft.db")
 
 
 def close_connection(cursor, conn):
@@ -35,9 +36,10 @@ def create_sql(json_file):
     table_json = load_json(json_file)
     table_name = os.path.basename(json_file).replace(".json", "")
     fields = table_json["fields"]
+    foreign_key = table_json.get("foreign_key")
     sql = f"""\
 CREATE TABLE IF NOT EXISTS {table_name}
-    ({", ".join([f"{key} {fields[key]}" for key in fields])}, PRIMARY KEY({table_json["primary_key"]}))
+    ({", ".join([f"{key} {fields[key]}" for key in fields])} {f", {foreign_key}" if foreign_key else ""} )
 """
     return sql
 
@@ -47,7 +49,7 @@ def create_tables():
     Creates the tables based on the schema defined in the schema folder
     """
     table_wildcard = "*.json"
-    filenames = glob.glob(os.path.join("..", "data", "schema", table_wildcard))
+    filenames = glob.glob(os.path.join("data", "schema", table_wildcard))
     conn, cursor = connect()
     for file in filenames:
         sql = create_sql(file)
@@ -77,7 +79,8 @@ def query_table(table_name):
     Prints 10 rows from a given table_name
     """
     SQL = f"SELECT * FROM {table_name} LIMIT 10;"
-    execute_query(SQL)
+    rows = execute_query(SQL)
+    print(rows)
     return
 
 
@@ -114,10 +117,30 @@ def execute_query(SQL):
     return rows
 
 
-def reset_gameweek(gameweek):
+def reset_gameweek(gameweek, subscriber_id):
     """
-    Resets the charts_sent_status for a given gameweek
+    Resets the charts_sent_status for a given gameweek and subscriber_id
     """
-    SQL = f"UPDATE newsletter SET charts_sent_status = 0 where gameweek={gameweek}"
+    SQL = f"UPDATE newsletter SET charts_sent_status = 0 where gameweek={gameweek} and subscriber_id={subscriber_id};"
     execute_query(SQL)
+    return
+
+
+def add_owners(league_number):
+    """
+    Adds managers to the owners table
+    """
+    DB = "owners"
+    filename = "details.json"
+    owners_json = load_json(os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), "data", "api_results", str(league_number), filename))
+    owners_df = pd.json_normalize(owners_json["league_entries"])
+    owners_df.rename(columns={'entry_id': 'owner_id', 'entry_name': 'team_name',
+                     'player_first_name': 'first_name', 'player_last_name': 'last_name'}, inplace=True)
+    owners_columns = ["owner_id", "team_name", "first_name", "last_name"]
+    owners_df = owners_df[owners_columns]
+    owners_df[league_number] = league_number
+    conn, cursor = connect()
+    owners_df.to_sql(DB, conn, if_exists='replace', index=False)
+    close_connection(cursor, conn)
     return

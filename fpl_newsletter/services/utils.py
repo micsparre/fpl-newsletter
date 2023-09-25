@@ -11,5 +11,5 @@ def load_json(filename):
             table_json = json.load(f)
         return table_json
     else:
-        print("invalid filename")
+        print(f"invalid filename: {filename}")
         raise Exception("File issue during json load")

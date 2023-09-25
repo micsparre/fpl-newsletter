@@ -4,24 +4,26 @@ from services.utils import load_json
 from etl_scripts.api import get_dataframe
 from services.sql import connect, close_connection, get_df_from_table
 
-API_RESULTS_FOLDER = os.path.join("data", "api_results")
-REPORT_PATH = os.path.join("data", "generated_reports", "players.xlsx")
+API_RESULTS_FOLDER = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "data", "api_results")
+
 PLAYERS_DB = "players"
 
 
-def process_players():
+def process_players(league_number):
     """
     Process the api data and load into the players table
     """
-    elements_df = process_elements("api")
-    status_df = process_status()
-    owners_df = process_owners()
+    elements_df = process_elements("api", league_number)
+    status_df = process_status(league_number)
+    owners_df = process_owners(league_number)
     teams_df = process_teams()
     positions_df = process_positions()
 
     merged_df = elements_df.merge(
         status_df, left_on="id", right_on="element", how="left")
     merged_df.drop(columns=["element"], inplace=True)
+    merged_df.rename(columns={"id": "player_id"}, inplace=True)
 
     merged_df = merged_df.merge(
         owners_df, left_on="owner", right_on="entry_id", how="left")
@@ -40,12 +42,14 @@ def process_players():
     merged_df.sort_values(
         by=["owner", "status", "draft_rank"], inplace=True, na_position='first')
 
-    db_players_df = process_elements("table")
+    db_players_df = process_elements("table", league_number)
     new_players_df = identify_new_players(
-        merged_df, db_players_df.loc[:, ['id']])
+        merged_df, db_players_df.loc[:, ['player_id']])
     status_updates_df = identify_status_updates(
-        merged_df.copy(), db_players_df.loc[:, ['id', 'status']])
+        merged_df.copy(), db_players_df.loc[:, ['player_id', 'status']])
 
+    REPORT_PATH = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), "data", "generated_reports", str(league_number), "players.xlsx")
     with pd.ExcelWriter(REPORT_PATH) as writer:
         merged_df.to_excel(writer, sheet_name='player info', index=False)
         new_players_df.to_excel(writer, sheet_name='new players', index=False)
@@ -67,12 +71,12 @@ def process_players():
     return [REPORT_PATH] if message_body else [], message_body
 
 
-def process_elements(method):
+def process_elements(method, league_number):
     """
     Process the elements object and return a dataframe
     """
     if method == "api":
-        elements_df = get_dataframe("elements")
+        elements_df = get_dataframe("elements", league_number)
         elements_columns = ["id", "first_name", "second_name",
                             "team", "element_type", "draft_rank", "status"]
         value_map = {'a': 'Active', 'u': 'Transferred',
@@ -87,29 +91,30 @@ def process_elements(method):
     return elements_df
 
 
-def process_status():
+def process_status(league_number):
     """
     Process the element_status object and return a dataframe
     """
     filename = "element-status.json"
-    element_status_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
+    element_status_json = load_json(os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), API_RESULTS_FOLDER, str(league_number), filename))
     status_df = pd.json_normalize(element_status_json["element_status"])
     status_columns = ["element", "owner"]
     status_df = status_df[status_columns]
     return status_df
 
 
-def process_owners():
+def process_owners(league_number):
     """
     Process the league_entries object and return a dataframe
     """
-    DB = "owners"
     filename = "details.json"
-    owners_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
+    owners_json = load_json(os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), API_RESULTS_FOLDER, str(league_number), filename))
     owners_df = pd.json_normalize(owners_json["league_entries"])
     owners_columns = ["entry_id", "entry_name"]
-    owners_df = owners_df[owners_columns]
-    return owners_df
+    filtered_owners_df = owners_df[owners_columns]
+    return filtered_owners_df
 
 
 def process_teams():
@@ -117,7 +122,8 @@ def process_teams():
     Process the teams object and return a dataframe
     """
     filename = "bootstrap-static.json"
-    elements_json = load_json(os.path.join(API_RESULTS_FOLDER, filename))
+    elements_json = load_json(os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), API_RESULTS_FOLDER, filename))
     teams_df = pd.json_normalize(elements_json["teams"])
     teams_columns = ["id", "name"]
     teams_df = teams_df[teams_columns]
@@ -142,8 +148,8 @@ def identify_new_players(api_players_df, db_players_df):
     """
     Returns a dataframe of new players
     """
-    new_players_df = api_players_df[~api_players_df['id'].isin(
-        db_players_df['id'])].copy()
+    new_players_df = api_players_df[~api_players_df['player_id'].isin(
+        db_players_df['player_id'])].copy()
     new_players_df.sort_values(by=['draft_rank'], inplace=True)
     return new_players_df
 
@@ -153,10 +159,10 @@ def identify_status_updates(api_players_df, db_players_df):
     Returns a dataframe of status updates
     """
     merged_df = pd.merge(api_players_df, db_players_df,
-                         on='id', suffixes=["_new", "_old"], how='right')
+                         on='player_id', suffixes=["_new", "_old"], how='right')
     status_updates_df = merged_df[merged_df['status_old']
                                   != merged_df['status_new']].copy()
     status_updates_df.sort_values(by=['status_old'], inplace=True)
-    status_updates_df = status_updates_df[['id', 'first_name', 'last_name', 'draft_rank', 'owner',
+    status_updates_df = status_updates_df[['player_id', 'first_name', 'last_name', 'draft_rank', 'owner',
                                            'team', 'position', 'status_old', 'status_new']]
     return status_updates_df

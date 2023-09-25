@@ -4,22 +4,22 @@ import os
 from mailjet_rest import Client
 from services.utils import load_json
 
-CONFIG_PATH = os.path.join("configuration", "config.json")
+CONFIG_PATH = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "..", "configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
 
 
 # Get your environment Mailjet keys
 API_KEY = CONFIG.get('mailjet').get('api_key')
 API_SECRET = CONFIG.get('mailjet').get('secret_key')
-
 SENDER_EMAIL = CONFIG.get('mailjet').get('sender_email')
-RECIPIENT_EMAIL = 'michaelthorsparre@gmail.com'
-SUBJECT = 'FPL Draft Daily Report'
+
+SUBJECT = 'FPL Newsletter'
 
 MAILJET = Client(auth=(API_KEY, API_SECRET), version="v3.1")
 
 
-def send_email(attachment_files, message_body):
+def send_email(attachment_files, message_body, recipient_email, recipient_name):
     """
     Sends an email with the given attachments
     """
@@ -36,20 +36,26 @@ def send_email(attachment_files, message_body):
             {
                 "From": {
                     "Email": SENDER_EMAIL,
-                    "Name": "Michael Sparre"
+                    "Name": "FPL Newsletter"
                 },
                 "To": [
                     {
-                        "Email": RECIPIENT_EMAIL,
+                        "Email": recipient_email,
+                        "Name": recipient_name
+                    }
+                ],
+                "Bcc": [
+                    {
+                        "Email": "fantasyplnewsletter@gmail.com",
                         "Name": "Michael Sparre"
                     }
                 ],
                 "Subject": SUBJECT,
-                "TextPart": "FPL Newsletter\n" + message_body,
+                "TextPart": message_body,
                 "Attachments": [
                     {
                         # Content type for Excel files
-                        "ContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "ContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if filename.endswith(".xlsx") else "image/png",
                         "Filename": os.path.basename(filename),
                         "Base64Content": a
                     } for filename, a in zip(attachment_files, attachments)
