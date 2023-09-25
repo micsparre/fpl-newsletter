@@ -14,12 +14,15 @@ TO_NUMBER = CONFIG.get('twilio').get('to_number')
 # Create a Twilio client
 CLIENT = Client(SID, TOKEN)
 
-# [DEPRECATED] sends sms to newsletter recipients
+
 def send_sms(message_body):
+    """
+    Sends an sms with the given message body
+    """
     print(f"message body: {message_body}")
     message = CLIENT.messages.create(
-                                    body=message_body,
-                                    from_=FROM_NUMBER,
-                                    to=TO_NUMBER
-                                    )
+        body=message_body,
+        from_=FROM_NUMBER,
+        to=TO_NUMBER
+    )
     return f"SMS sent with SID: {message.sid}"

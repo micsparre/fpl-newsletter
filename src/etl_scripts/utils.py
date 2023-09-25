@@ -7,8 +7,11 @@ from services.utils import load_json
 CONFIG_PATH = os.path.join("configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
 
-# aggregate data for owned players
+
 def get_team_players_agg_data():
+    """
+    Aggregate data for owned players
+    """
 
     # Pull the required dataframes
     element_status_df = get_dataframe('element_status')
@@ -45,9 +48,12 @@ def get_team_players_agg_data():
 
     return players_df
 
-# aggregate data based on gameweek
+
 def get_team_players_gw_data():
-    
+    """
+    Aggregate data based on gameweek
+    """
+
     df = get_team_players_agg_data()
     elements_to_pull = df['element']
     players_dict = {}
@@ -59,8 +65,11 @@ def get_team_players_gw_data():
 
     return players_df
 
-# pulls gameweek data for a given list of players
+
 def get_player_gameweek_data(elements, gameweek):
+    """
+    Pulls gameweek data for a given list of players
+    """
     columns = ['id', 'detail', 'event', 'assists', 'bonus', 'bps', 'clean_sheets',
                'creativity', 'goals_conceded', 'goals_scored', 'ict_index',
                'influence', 'minutes', 'own_goals', 'penalties_missed',

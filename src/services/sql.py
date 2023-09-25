@@ -6,24 +6,32 @@ from services.utils import load_json
 
 DB_PATH = os.path.join("data", "fpl-draft.db")
 
-# close db connection and cursor
+
 def close_connection(cursor, conn):
+    """
+    Closes the connection and cursor
+    """
     if cursor:
         cursor.close()
     if conn:
         conn.close
     return
 
-# get cursor and connection objects
+
 def connect():
+    """
+    Connects to the sqlite database and returns the connection and cursor objects
+    """
     # Connect to an SQLite database (creates a new file if it doesn't exist)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     return conn, cursor
 
 
-# create file based on schema json file
 def create_sql(json_file):
+    """
+    Creates the sql statement based on the schema json file
+    """
     table_json = load_json(json_file)
     table_name = os.path.basename(json_file).replace(".json", "")
     fields = table_json["fields"]
@@ -33,8 +41,11 @@ CREATE TABLE IF NOT EXISTS {table_name}
 """
     return sql
 
-# create tables based on schema defined in the schema folder
+
 def create_tables():
+    """
+    Creates the tables based on the schema defined in the schema folder
+    """
     table_wildcard = "*.json"
     filenames = glob.glob(os.path.join("..", "data", "schema", table_wildcard))
     conn, cursor = connect()
@@ -45,9 +56,12 @@ def create_tables():
         conn.commit()
     close_connection(cursor, conn)
     return
-    
-# prints table names in db
+
+
 def print_tables():
+    """
+    Prints the table names in the database
+    """
     PRINT_SQL = "SELECT name FROM sqlite_master WHERE type='table';"
     conn, cursor = connect()
     cursor.execute(PRINT_SQL)
@@ -56,30 +70,42 @@ def print_tables():
         print(f"table: {table[0]}")
     close_connection(cursor, conn)
     return
-        
-# print 10 rows from a given table_name
+
+
 def query_table(table_name):
+    """
+    Prints 10 rows from a given table_name
+    """
     SQL = f"SELECT * FROM {table_name} LIMIT 10;"
     execute_query(SQL)
     return
-        
-# print count of records from a given table_name
+
+
 def count_table(table_name):
+    """
+    Prints the number of rows in a given table_name
+    """
     SQL = f"SELECT COUNT(*) FROM {table_name};"
     rows = execute_query(SQL)
     print(f"num rows in {table_name}: {len(rows)}")
     return
 
-# return df loaded from sqlite    
+
 def get_df_from_table(table_name):
+    """
+    Returns a dataframe from a given table_name
+    """
     conn, cursor = connect()
     SQL = f"SELECT * from {table_name}"
     df = pd.read_sql_query(SQL, conn)
     close_connection(cursor, conn)
     return df
 
-# creates sqlite connection and executes query and returns result
+
 def execute_query(SQL):
+    """
+    Executes a given SQL query and returns the result
+    """
     conn, cursor = connect()
     cursor.execute(SQL)
     rows = cursor.fetchall()
@@ -87,8 +113,11 @@ def execute_query(SQL):
     close_connection(cursor, conn)
     return rows
 
-# resets the charts_sent_status for a given gameweek
+
 def reset_gameweek(gameweek):
+    """
+    Resets the charts_sent_status for a given gameweek
+    """
     SQL = f"UPDATE newsletter SET charts_sent_status = 0 where gameweek={gameweek}"
     execute_query(SQL)
     return
