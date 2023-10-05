@@ -14,7 +14,7 @@ LOG_PATH = os.path.join(BASE_LOG_PATH, "fpl_newsletter", datetime.now(
     pytz.timezone('US/Pacific')).strftime('%Y-%m-%d_%H-%M-%S'), LOG_FILENAME)
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("fpl_newsletter")
 logger.setLevel(logging.INFO)
 file_handler = logging.FileHandler(LOG_PATH)
 logger.addHandler(file_handler)

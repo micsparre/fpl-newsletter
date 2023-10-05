@@ -3,7 +3,7 @@ from etl_scripts.api import get_gameweek
 from services.sql import connect, close_connection, execute_query
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("fpl_newsletter")
 
 NEWSLETTER_DB = "newsletter"
 gameweek, events_df = get_gameweek()

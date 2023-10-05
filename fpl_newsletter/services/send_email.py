@@ -5,7 +5,7 @@ from mailjet_rest import Client
 from services.utils import load_json
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("fpl_newsletter")
 
 CONFIG_PATH = os.path.join(os.path.dirname(
     os.path.abspath(__file__)), "..", "configuration", "config.json")

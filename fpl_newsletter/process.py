@@ -5,7 +5,7 @@ from etl_scripts.api import get_dataframe
 from services.sql import connect, close_connection, get_df_from_table
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("fpl_newsletter")
 
 API_RESULTS_FOLDER = os.path.join(os.path.dirname(
     os.path.abspath(__file__)), "data", "api_results")
