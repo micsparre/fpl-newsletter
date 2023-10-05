@@ -1,8 +1,25 @@
 from process import process_players
-from etl_scripts.api import get_fpl_data, get_league_data
+from etl_scripts.api import get_fpl_data, get_league_data, get_gameweek
 from services.db import Subcribers
-from services.build_charts import build_charts
+from services.build_charts import build_charts, update_status
 from services.send_email import send_email
+import logging
+import os
+from datetime import datetime
+import pytz
+
+BASE_LOG_PATH = os.environ.get('LOG_DIR')
+LOG_FILENAME = 'fpl_newsletter.log'
+LOG_PATH = os.path.join(BASE_LOG_PATH, "fpl_newsletter", datetime.now(
+    pytz.timezone('US/Pacific')).strftime('%Y-%m-%d_%H-%M-%S'), LOG_FILENAME)
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler(LOG_PATH)
+logger.addHandler(file_handler)
+
+gameweek, _ = get_gameweek()
 
 
 def main():
@@ -10,6 +27,7 @@ def main():
     Entry point to program
     """
     subs = Subcribers()
+    logger.info(f"current subscribers: {subs.get_df_as_list()}")
     get_fpl_data()
     for sub in subs.get_df_as_list():
         league_number, subscriber_id = sub["league_number"], sub["subscriber_id"]
@@ -19,8 +37,13 @@ def main():
         report_path, message_body = process_players(league_number)
         paths = build_charts(league_number, subscriber_id)
         rc = send_email(paths + report_path, message_body, email, full_name)
+        update_status(gameweek, subscriber_id)
     return rc
 
 
 if __name__ == "__main__":
-    print(main())
+    logger.info(
+        f"Starting execution at {datetime.now(pytz.timezone('US/Pacific')).strftime('%Y-%m-%d %H:%M:%S')}")
+    main()
+    logger.info(
+        f'Finished execution at {datetime.now(pytz.timezone("US/Pacific")).strftime("%Y-%m-%d %H:%M:%S")}')

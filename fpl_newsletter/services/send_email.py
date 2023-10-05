@@ -3,6 +3,9 @@ import base64
 import os
 from mailjet_rest import Client
 from services.utils import load_json
+import logging
+
+logger = logging.getLogger(__name__)
 
 CONFIG_PATH = os.path.join(os.path.dirname(
     os.path.abspath(__file__)), "..", "configuration", "config.json")
@@ -24,7 +27,9 @@ def send_email(attachment_files, message_body, recipient_email, recipient_name):
     Sends an email with the given attachments
     """
     if len(attachment_files) == 0:
-        return "no updates to send"
+        logger.info("No updates to send")
+        return
+
     attachments = []
     for a in attachment_files:
         with open(a, 'rb') as attachment_file:
@@ -63,5 +68,10 @@ def send_email(attachment_files, message_body, recipient_email, recipient_name):
             }
         ]
     }
-    result = MAILJET.send.create(data=data)
+    try:
+        result = MAILJET.send.create(data=data)
+    except Exception as e:
+        logger.error(str(e))
+        raise Exception(str(e))
+    logger.info(f"Email sent to {recipient_email}")
     return result.json()

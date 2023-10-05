@@ -10,9 +10,9 @@ I have extended the project to email myself a generated report of players that h
 
 The job runs daily using _cron_. It is scheduled on my local machine and works to compare the api information of the previous day from an updated _sqlite_ table with the currently fetched api extracts.
 
-An example of the configuration file/variables required to run the project are located in [src/configuration/example-config.json](src/configuration/example-config.json).
+An example of the configuration file/variables required to run the project are located in [fpl_newsletter/configuration/example-config.json](fpl_newsletter/configuration/example-config.json).
 
-The entry point program that gets run when being scripted is [src/main.py](src/main.py).
+The entry point program that gets run when being scripted is [fpl_newsletter/main.py](fpl_newsletter/main.py).
 
 ## Requirements
 

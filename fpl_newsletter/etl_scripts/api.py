@@ -3,16 +3,18 @@ import requests
 import json
 from pandas import json_normalize
 from services.utils import load_json
+import logging
+
+logger = logging.getLogger(__name__)
+
 CONFIG_PATH = os.path.join(os.path.dirname(
     os.path.abspath(__file__)), "..", "configuration", "config.json")
 CONFIG = load_json(CONFIG_PATH)
 
-# BASE API URL
 PREM_URL = "https://draft.premierleague.com/"
 
-# folder to store api data
 API_RESULTS_FOLDER = os.path.join(os.path.dirname(
-    os.path.abspath(__file__)), "..", "data", "api_results")
+    os.path.abspath(__file__)), "..", "data", "api_results")  # folder to store api data
 
 
 def get_player_summary(player_id):
@@ -64,6 +66,9 @@ def get_league_data(league_number):
     # Loop over the api(s), call them and capture the response(s)
     for url in apis:
         r = session.get(os.path.join(PREM_URL, url))
+        if r.status_code != 200:
+            logger.error(f"Error retrieving data from {url}")
+            raise Exception(f"Error retrieving data from {url}")
         json_response = r.json()
         file_path = os.path.join(API_RESULTS_FOLDER, str(
             league_number), os.path.basename(url))

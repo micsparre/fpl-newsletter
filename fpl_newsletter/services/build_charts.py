@@ -1,6 +1,9 @@
 from services.charts import *
 from etl_scripts.api import get_gameweek
 from services.sql import connect, close_connection, execute_query
+import logging
+
+logger = logging.getLogger(__name__)
 
 NEWSLETTER_DB = "newsletter"
 gameweek, events_df = get_gameweek()
@@ -11,13 +14,12 @@ def build_charts(league_number, subscriber_id):
     Builds the charts and returns the paths
     """
     if check_status(subscriber_id):
-        print("")
+        logger.info("Building charts")
         standings_path = chart_league_standings_history(league_number)
         top_players_path = chart_top_n_players(league_number)
         streaks_path = chart_current_streaks(league_number)
         transfers_path = chart_net_xfer_value(gameweek, league_number)
         margins_path = chart_margins_multi(league_number)
-        update_status(gameweek, subscriber_id)
         return [standings_path, top_players_path, streaks_path, transfers_path, margins_path]
     return []
 
@@ -32,10 +34,13 @@ def check_status(subscriber_id):
     stale_status = int(rows[0][0])
     curr_week = events_df[events_df["gameweek"] == gameweek]
     status = curr_week["charts_sent_status"].values[0]
-    if stale_status == 0 and status == 1:  # charts need to be sent
-        return True
+    logger.info(
+        f"stale_status (were charts delivered this week?): {stale_status}")
+    logger.info(
+        f"status (is the gameweek over since last execution?): {status}")
+    should_send = stale_status == 0 and status == 1
     close_connection(cursor, conn)
-    return False
+    return should_send
 
 
 def update_status(gameweek, subscriber_id):
@@ -46,4 +51,5 @@ def update_status(gameweek, subscriber_id):
     conn, cursor = connect()
     execute_query(SQL)
     close_connection(cursor, conn)
-    return True
+    logger.info(f"Updated charts_sent_status to 1 for gameweek {gameweek}")
+    return

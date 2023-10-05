@@ -3,6 +3,9 @@ import os
 from services.utils import load_json
 from etl_scripts.api import get_dataframe
 from services.sql import connect, close_connection, get_df_from_table
+import logging
+
+logger = logging.getLogger(__name__)
 
 API_RESULTS_FOLDER = os.path.join(os.path.dirname(
     os.path.abspath(__file__)), "data", "api_results")
@@ -48,22 +51,27 @@ def process_players(league_number):
     status_updates_df = identify_status_updates(
         merged_df.copy(), db_players_df.loc[:, ['player_id', 'status']])
 
-    REPORT_PATH = os.path.join(os.path.dirname(
-        os.path.abspath(__file__)), "data", "generated_reports", str(league_number), "players.xlsx")
-    with pd.ExcelWriter(REPORT_PATH) as writer:
-        merged_df.to_excel(writer, sheet_name='player info', index=False)
-        new_players_df.to_excel(writer, sheet_name='new players', index=False)
-        status_updates_df.to_excel(
-            writer, sheet_name='status updates', index=False)
-
     num_new_players, num_status_updates = len(
         new_players_df), len(status_updates_df)
+    REPORT_PATH = os.path.join(os.path.dirname(
+        os.path.abspath(__file__)), "data", "generated_reports", str(league_number), "players.xlsx")
+    message_body = ""
+    logger.info(f"num_new_players: {num_new_players}")
+    logger.info(f"num_status_updates: {num_status_updates}")
+    if (num_new_players + num_status_updates) > 0:
 
-    message_body = f"""
+        with pd.ExcelWriter(REPORT_PATH) as writer:
+            merged_df.to_excel(writer, sheet_name='player info', index=False)
+            new_players_df.to_excel(
+                writer, sheet_name='new players', index=False)
+            status_updates_df.to_excel(
+                writer, sheet_name='status updates', index=False)
+
+            message_body = f"""
 {num_new_players or 0} new player{"s" if num_new_players != 1 else ""} {"have" if num_new_players != 1 else "has"} joined since the last newsletter.
 
 {num_status_updates or 0} player status update{"s" if num_status_updates != 1 else ""} since the last newsletter.
-""" if (num_new_players + num_status_updates) > 0 else ""
+"""
 
     conn, cursor = connect()
     merged_df.to_sql(PLAYERS_DB, conn, if_exists='replace', index=False)
