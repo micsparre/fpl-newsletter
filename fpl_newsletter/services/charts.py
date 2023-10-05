@@ -297,7 +297,7 @@ def chart_net_xfer_value(gameweek, league_number):
     trxns_df = (
         pd.merge(trxns_df, gw_data_df,
                  left_on='player_out_id', right_on='element')
-        .drop(columns=['element'])
+        .drop(columns=['element', 'result'])
         .rename(columns={'total_points': 'player_out_points'})
     )
 
@@ -313,9 +313,21 @@ def chart_net_xfer_value(gameweek, league_number):
         # Player points
         'player_in_points',
         'player_out_points',
-        'result'
     ]]
     trxns_df = trxns_df.drop_duplicates()
+
+    # aggregate for edge case for players with double gameweek
+    trxns_df = trxns_df.groupby(['player_in', 'player_out']).agg(
+        {'team': 'first',
+         'event': 'first',
+         'kind': 'first',
+         'player_in_id': 'first',
+         'player_out_id': 'first',
+         'player_in_points': 'sum',
+         # assuming that the double gameweek player is not the one transferred out
+         'player_out_points': 'first'
+         }).reset_index()
+
     trxns_df['net_xfer_value'] = trxns_df['player_in_points'] - \
         trxns_df['player_out_points']
 
@@ -334,17 +346,10 @@ def chart_net_xfer_value(gameweek, league_number):
     min_val = min(values)
     max_val = max(values)
     plt.axvline(x=0, color='grey')
-    for i, v in enumerate(values):
-        if v < 0:
-            plt.text(v - .5, i, str(v), color='black',
-                     va='center', fontsize=10)
-        else:
-            plt.text(v + .15, i, str(v), color='black',
-                     va='center', fontsize=10)
 
     ax = plt.gca()
-    ax.set_xticks(np.arange(min(0, ((min_val - 1) // 2) * 2),
-                  max(2, ((max_val + 1) // 2) * 2) + 1, step=2))
+    ax.set_xticks(np.arange(min(0, (min_val - 1)),
+                  max(2, (max_val + 1)) + 1, step=1))
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.set_title("Gameweek net transfer value", y=1.08)

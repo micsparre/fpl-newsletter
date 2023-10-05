@@ -4,6 +4,7 @@ import os
 from mailjet_rest import Client
 from services.utils import load_json
 import logging
+import json
 
 logger = logging.getLogger("fpl_newsletter")
 
@@ -35,7 +36,11 @@ def send_email(attachment_files, message_body, recipient_email, recipient_name):
         with open(a, 'rb') as attachment_file:
             attachments.append(base64.b64encode(
                 attachment_file.read()).decode('utf-8'))
-
+    if not message_body:
+        message_body = "here are the charts for the latest gameweek"
+    logger.info(f"Sending email to {recipient_email}")
+    logger.info(f"attachments: {attachment_files}")
+    logger.info(f"message_body: {message_body}")
     data = {
         'Messages': [
             {
@@ -70,8 +75,12 @@ def send_email(attachment_files, message_body, recipient_email, recipient_name):
     }
     try:
         result = MAILJET.send.create(data=data)
+        if result.status_code != 200:
+            logger.error(json.dumps(result.json(), indent=2))
+            raise Exception(result.json())
     except Exception as e:
         logger.error(str(e))
         raise Exception(str(e))
     logger.info(f"Email sent to {recipient_email}")
+    logger.info(json.dumps(result.json(), indent=2))
     return result.json()
