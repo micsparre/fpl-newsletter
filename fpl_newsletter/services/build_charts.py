@@ -13,7 +13,7 @@ def build_charts(league_number, subscriber_id):
     """
     Builds the charts and returns the paths
     """
-    if check_status(subscriber_id) or True:
+    if check_status(subscriber_id):
         logger.info("Building charts")
         standings_path = chart_league_standings_history(league_number)
         top_players_path = chart_top_n_players(league_number)

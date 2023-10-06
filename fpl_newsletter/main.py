@@ -8,20 +8,21 @@ import os
 from datetime import datetime
 import pytz
 
-BASE_LOG_PATH = os.environ.get('LOG_DIR')
+logger = logging.getLogger("fpl_newsletter")
+logger.setLevel(logging.INFO)
+
+BASE_LOG_PATH = os.environ.get('LOG_DIR', '/tmp')
 LOG_FILENAME = 'fpl_newsletter.log'
 LOG_PATH = os.path.join(BASE_LOG_PATH, "fpl_newsletter", datetime.now(
     pytz.timezone('US/Pacific')).strftime('%Y-%m-%d_%H-%M-%S'), LOG_FILENAME)
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
 
-
-logger = logging.getLogger("fpl_newsletter")
-logger.setLevel(logging.INFO)
 file_handler = logging.FileHandler(LOG_PATH)
 formatter = logging.Formatter(
     '%(levelname)s - %(asctime)s - %(name)s - %(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
 
 gameweek, _ = get_gameweek()
 
@@ -39,9 +40,10 @@ def main():
         full_name = f"{first_name} {last_name}"
         get_league_data(league_number)
         report_path, message_body = process_players(league_number)
-        paths = build_charts(league_number, subscriber_id)
-        send_email(paths + report_path, message_body, email, full_name)
-        update_status(gameweek, subscriber_id)
+        chart_paths = build_charts(league_number, subscriber_id)
+        send_email(chart_paths + report_path, message_body, email, full_name)
+        if chart_paths:
+            update_status(gameweek, subscriber_id)
     return
 
 
