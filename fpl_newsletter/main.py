@@ -3,15 +3,18 @@ from etl_scripts.api import get_fpl_data, get_league_data, get_gameweek
 from services.db import Subcribers
 from services.build_charts import build_charts, update_status
 from services.send_email import send_email
+from dotenv import load_dotenv
 import logging
 import os
 from datetime import datetime
 import pytz
 
+load_dotenv()
+
 logger = logging.getLogger("fpl_newsletter")
 logger.setLevel(logging.INFO)
 
-BASE_LOG_PATH = os.environ.get('LOG_DIR', '/tmp')
+BASE_LOG_PATH = os.environ.get('LOG_DIR', 'tmp/')
 LOG_FILENAME = 'fpl_newsletter.log'
 LOG_PATH = os.path.join(BASE_LOG_PATH, "fpl_newsletter", datetime.now(
     pytz.timezone('US/Pacific')).strftime('%Y-%m-%d_%H-%M-%S'), LOG_FILENAME)
