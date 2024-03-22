@@ -1,8 +1,8 @@
-# fpl_newsletter
+# fpl-newsletter
 
 ---
 
-I picked up this hobby project from [leej11/fpl_draft_league](https://github.com/leej11/fpl_draft_league) ⚽️
+I forked this hobby project from [leej11/fpl_draft_league](https://github.com/leej11/fpl_draft_league) ⚽️
 
 The starter code in this project from [leej11](https://github.com/leej11) provided a solid foundation of calling the Premier League's Fantasy API and creating chart visualizations for user groups.
 
