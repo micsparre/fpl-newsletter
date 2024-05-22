@@ -14,15 +14,18 @@ load_dotenv()
 logger = logging.getLogger("fpl_newsletter")
 logger.setLevel(logging.INFO)
 
-BASE_LOG_PATH = os.environ.get('LOG_DIR', 'tmp/')
-LOG_FILENAME = 'fpl_newsletter.log'
-LOG_PATH = os.path.join(BASE_LOG_PATH, "fpl_newsletter", datetime.now(
-    pytz.timezone('US/Pacific')).strftime('%Y-%m-%d_%H-%M-%S'), LOG_FILENAME)
+BASE_LOG_PATH = os.environ.get("LOG_DIR", "logs/")
+LOG_FILENAME = "fpl_newsletter.log"
+LOG_PATH = os.path.join(
+    BASE_LOG_PATH,
+    "fpl_newsletter",
+    datetime.now(pytz.timezone("US/Pacific")).strftime("%Y-%m-%d_%H-%M-%S"),
+    LOG_FILENAME,
+)
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
 
 file_handler = logging.FileHandler(LOG_PATH)
-formatter = logging.Formatter(
-    '%(levelname)s - %(asctime)s - %(name)s - %(message)s')
+formatter = logging.Formatter("%(levelname)s - %(asctime)s - %(name)s - %(message)s")
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
@@ -52,7 +55,9 @@ def main():
 
 if __name__ == "__main__":
     logger.info(
-        f"Starting execution at {datetime.now(pytz.timezone('US/Pacific')).strftime('%Y-%m-%d %H:%M:%S')}")
+        f"Starting execution at {datetime.now(pytz.timezone('US/Pacific')).strftime('%Y-%m-%d %H:%M:%S')}"
+    )
     main()
     logger.info(
-        f'Finished execution at {datetime.now(pytz.timezone("US/Pacific")).strftime("%Y-%m-%d %H:%M:%S")}')
+        f'Finished execution at {datetime.now(pytz.timezone("US/Pacific")).strftime("%Y-%m-%d %H:%M:%S")}'
+    )
